@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='utf-8'?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2016-02-11T21:43:17Z" target-language="de">
+		<header>
+			<description>Context Sensitive Help for sys_dmail table</description>
+			<type>CSH</type>
+			<csh_table>sys_dmail</csh_table>
+			<fileId>EXT:direct_mail/Resources/Private/Language/locallang_csh_sysdmail.xml</fileId>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@gmail.com</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id=".description">
+			<source>A direct mail is a highly customized and personalized newsletter sent to subscribers either as HTML or Plain text, with or without attachments.</source>
+		<target/></trans-unit>
+		<trans-unit id=".details" xml:space="preserve">
+			<source><![CDATA[Direct mail records are produced by the Direct Mail module.
+
+A direct mail record contains information about a newsletter such as subject, sender, priority, attachments and whether HTML or Plain text content is allowed. Furthermore, it also holds the compiled mail content which is sent to the subscribers.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="HTMLParams.description" xml:space="preserve">
+			<source><![CDATA[If the Direct mail is of type 'TYPO3 Page', enter the additional URL parameters used to fetch the HTML content.
+
+If the Direct Mail is of type 'External URL',enter the complete URL used to fetch the HTML content.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="HTMLParams.details" xml:space="preserve">
+			<source><![CDATA[When the Direct mail is of type 'TYPO3 Page', the specified parameters will be added to the URL used to fetch the HTML content of the direct mail. If in doubt, leave it blank.
+
+When the Direct Mail is of type 'External URL', this field should contain the complete URL used to fetch the HTML content.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="_.seeAlso">
+			<source>sys_dmail_group, sys_dmail_category</source>
+		<target/></trans-unit>
+		<trans-unit id="authcode_fieldList.description">
+			<source>List of fields used in the computation of the authentication code included in unsubscribe links and jump URL's in direct mails.</source>
+		<target/></trans-unit>
+		<trans-unit id="flowedFormat.description">
+			<source>Set this option if you want to use normally flowing text inside the plain text mail content.</source>
+		<target/></trans-unit>
+		<trans-unit id="flowedFormat.details">
+			<source>If the option is set, plain text mail content will be broken in fixed length lines, as is standard for plain text email content, but so-called flowed format will be used. This will allow client agents that support this format to display the text as normally flowing text. The option is ignored if 'quoted-printable' is used.</source>
+		<target/></trans-unit>
+		<trans-unit id="from_email.description" approved="yes">
+			<source>Enter the sender email address. (Required)</source>
+		<target state="translated">E-Mail-Adresse des Senders. (Pflichtfeld)</target><alt-trans xml:space="preserve" origin="cpascher"><target>E-Mail-Adresse des Senders. (Benötigt)</target></alt-trans><alt-trans xml:space="preserve" origin="cpascher"><target>E-Mail-Adresse des Senders. (Pflichtfeld)</target></alt-trans></trans-unit>
+		<trans-unit id="from_email.details">
+			<source>This email address will appear as the originating address or sender address in the direct mails received by the recipients.</source>
+		<target/></trans-unit>
+		<trans-unit id="from_name.description" approved="yes">
+			<source>Enter the sender name. (Required)</source>
+		<target state="translated">Namen des Senders eingeben. (Pflichtfeld)</target><alt-trans xml:space="preserve" origin="cpascher"><target>Namen des Senders eingeben. (Pflichtfeld)</target></alt-trans></trans-unit>
+		<trans-unit id="from_name.details" approved="yes">
+			<source>This name will appear as the name of the author or sender in the direct mails received by the recipients.</source>
+		<target state="translated">Dieser Name wird als Name des Authors oder Absenders in den E-Mails beim Empfänger erscheinen.</target><alt-trans xml:space="preserve" origin="cpascher"><target>Dieser Name wird als Name des Authors oder Senders in den E-Mails beim Empfänger erscheinen.</target></alt-trans></trans-unit>
+		<trans-unit id="includeMedia.description">
+			<source>Set this option if you want to incorporate images and other media inside the HTML mail content.</source>
+		<target/></trans-unit>
+		<trans-unit id="includeMedia.details" xml:space="preserve">
+			<source><![CDATA[If the option is set, images and other media are encoded and incorporated into the messages. Sent messages will be heavier to transport.
+If the option is not set, images and media are included in HTML content by absolute reference (href) to their location on the site where they reside.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="long_link_mode.description">
+			<source>If set and if use_rdct is set, all links in plain text content will be redirected, not only links longer than 76 characters.</source>
+		<target/></trans-unit>
+		<trans-unit id="organisation.description">
+			<source>Enter the name of the sending organization.</source>
+		<target/></trans-unit>
+		<trans-unit id="organisation.details" approved="yes">
+			<source>The name of the organization will appear in the headers of the mails sent to subscribers.</source>
+		<target state="translated">Der Name der Organisation wird in dem Header der E-Mails an die Abonnenten erscheinen.</target><alt-trans xml:space="preserve" origin="cpascher"><target>Der Name der Organisation wird in dem Header der E-Mails an die Abonnenten erscheinen.</target></alt-trans></trans-unit>
+		<trans-unit id="plainParams.description" xml:space="preserve">
+			<source><![CDATA[If the Direct mail is of type 'TYPO3 Page', enter the additional URL parameters used to fetch the plain text content of the direct mail.
+
+If the Direct Mail is of type 'External URL',enter the complete URL used to fetch the plain text content.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="plainParams.details" xml:space="preserve">
+			<source><![CDATA[When the Direct mail is of type 'TYPO3 Page', the specified parameters will be added to the URL used to fetch the plain text content of the direct mail. If in doubt, set it either to '&type=99' or, when using TemplaVoila, to '&print=1'.
+
+When the Direct Mail is of type 'External URL', this field should contain the complete URL used to fetch the plain text content.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="priority.description" approved="yes">
+			<source>Enter the email delivery priority.</source>
+		<target state="translated">Gib die E-Mail Priorität ein.</target><alt-trans xml:space="preserve" origin="cpascher"><target>Gib die E-Mail Priorität ein.</target></alt-trans></trans-unit>
+		<trans-unit id="priority.details">
+			<source>The delivery priority will be set in the headers of the mails sent to subscribers.</source>
+		<target/></trans-unit>
+		<trans-unit id="replyto_email.description" approved="yes">
+			<source>Enter the email address to which replys are sent. (Optional)</source>
+		<target state="translated">Gib die Antwortadresse ein auf welche die Antworten gesendet werden sollen. (Optional)</target><alt-trans xml:space="preserve" origin="cpascher"><target>Gib die Antwortadresse ein auf welche die Antworten gesendet werden sollen. (Optional)</target></alt-trans></trans-unit>
+		<trans-unit id="replyto_email.details" approved="yes">
+			<source>If no reply address is specified, the sender email address will be used.</source>
+		<target state="translated">Die Senderadresse wird benutzt, wenn keine Antwortadresse konfiguriert wurde.</target><alt-trans xml:space="preserve" origin="cpascher"><target>Die Senderadresse wird benutzt, wenn keine Antwortadresse konfiguriert wurde.</target></alt-trans></trans-unit>
+		<trans-unit id="replyto_name.description" approved="yes">
+			<source>Enter the name of the 'Reply To' email address. (Optional)</source>
+		<target state="translated">Gib den Namen der Antwortadresse an. (Optional)</target><alt-trans xml:space="preserve" origin="cpascher"><target>Gib den Namen der Antwortadresse an. (Optional)</target></alt-trans></trans-unit>
+		<trans-unit id="replyto_name.details" approved="yes">
+			<source>If no reply name is specified, the sender name will be used.</source>
+		<target state="translated">Der Sendername wird benutzt, wenn keine Antwortadresse konfiguriert wurde.</target><alt-trans xml:space="preserve" origin="cpascher"><target>Der Sendername wird benutzt, wenn keine Antwortadresse konfiguriert wurde.</target></alt-trans></trans-unit>
+		<trans-unit id="return_path.description">
+			<source>Enter the return path email address here.</source>
+		<target/></trans-unit>
+		<trans-unit id="return_path.details" xml:space="preserve">
+			<source><![CDATA[This is the address to which non-deliverable mails will be returned to.
+If you put in the marker ###XID### it'll be substituted with the unique id of the mail recipient.
+Note that if PHP is executing in safe mode, the Direct mail module may not be able to set the return path to a value different than the value defined at the server level.]]></source>
+		<target/></trans-unit>
+		<trans-unit id="sendOptions.description" approved="yes">
+			<source>Select the format of mail content.</source>
+		<target state="translated">Wähle das Form des E-Mail-Inhalts aus.</target><alt-trans xml:space="preserve" origin="cpascher"><target>Wähle das Form des E-Mail-Inhalts aus.</target></alt-trans></trans-unit>
+		<trans-unit id="sendOptions.details">
+			<source>If in doubt, set it to both Plain text and HTML. The messages will then be sent with both formats included, and the recipients are normally able to select their preferred format.</source>
+		<target/></trans-unit>
+		<trans-unit id="type.description" approved="yes">
+			<source>Type of source of the Direct mail</source>
+		<target state="translated">Quelltyp der Direct mail</target><alt-trans xml:space="preserve" origin="cpascher"><target>Quelltyp der Direct mail</target></alt-trans></trans-unit>
+		<trans-unit id="type.details">
+			<source>The Direct mail may be compiled from a page extracted from the page tree of the TYPO3 site: 'TYPO3 Page', or from a page from another site: 'External URL'.</source>
+		<target/></trans-unit>
+		<trans-unit id="use_domain.description">
+			<source>Optionnally, select a domain that should be used for fetching content from internal TYPO3 pages.</source>
+		<target/></trans-unit>
+		<trans-unit id="use_domain.details">
+			<source>If a domain is selected, it will also be used in all internal links contained in mail content. If no domain is selected, the domain in use in the backend when the direct mail is compiled will be used to fetch content.</source>
+		<target/></trans-unit>
+		<trans-unit id="use_rdct.description" approved="yes">
+			<source>Redirect long links found in plain text content.</source>
+		<target state="translated">Lange Links aus dem Plaintext-Inhalt weiterleiten</target><alt-trans xml:space="preserve" origin="cpascher"><target>Lange Links aus dem Klartext-Inhalt weiterleiten</target></alt-trans></trans-unit>
+		<trans-unit id="use_rdct.details">
+			<source>If set, links longer than 76 characters found in plain text content will be redirected: long URL's will be substituted with ?RDCT=[md5hash] parameters.</source>
+		<target/></trans-unit>
+		</body>
+	</file>
+</xliff>
