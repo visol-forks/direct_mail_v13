@@ -77,9 +77,9 @@
         <source>Privacy jumpurl</source>
         <target state="translated">Privatliv jumpurl</target>
       </trans-unit>
-      <trans-unit id="configure_jumpurl_tracking_privacy_description" resname="configure_jumpurl_tracking_privacy_description">
+      <trans-unit id="configure_jumpurl_tracking_privacy_description" resname="configure_jumpurl_tracking_privacy_description" approved="yes">
         <source>Set this option, to anonymize click statistics </source>
-        <target state="translated">Angiv denne indstilling for at anonymiserer klikstatistikken </target>
+        <target state="final">Angiv denne indstilling for at anonymiserer klikstatistikken </target>
       </trans-unit>
       <trans-unit id="configure_options_additional" resname="configure_options_additional">
         <source>Additional module options</source>
@@ -97,9 +97,9 @@
         <source>Enable jump URL's:</source>
         <target state="translated">Aktivér jump-URL'er:</target>
       </trans-unit>
-      <trans-unit id="configure_options_links_jumpurl_description" resname="configure_options_links_jumpurl_description">
+      <trans-unit id="configure_options_links_jumpurl_description" resname="configure_options_links_jumpurl_description" approved="yes">
         <source>Check this option to enable jump URL's and the collection of click statistics.</source>
-        <target state="translated">Markér denne indstilling for at aktivere jump-URL'er og indsamling af klikstatistik.</target>
+        <target state="final">Markér denne indstilling for at aktivere jump-URL'er og indsamling af klikstatistik.</target>
       </trans-unit>
       <trans-unit id="configure_options_links_rdct" resname="configure_options_links_rdct">
         <source>This configuration determines how QuickMails are handled and further sets the default value for Direct Mails.</source>
