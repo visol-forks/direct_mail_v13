@@ -672,6 +672,12 @@ class SysDmailMaillogRepository extends MainRepository
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                 )
             )
+            ->andWhere(
+                $queryBuilder->expr()->gt(
+                    'html_sent',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            )
             ->executeQuery();
 
         return (bool)$statement->rowCount();
@@ -765,6 +771,12 @@ class SysDmailMaillogRepository extends MainRepository
             ->andWhere(
                 $queryBuilder->expr()->eq(
                     'response_type',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->gt(
+                    'html_sent',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                 )
             )
