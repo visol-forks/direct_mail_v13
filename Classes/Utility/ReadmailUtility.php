@@ -229,35 +229,35 @@ class ReadmailUtility
             $cp['reason_text'] = trim($parts[1])?trim($parts[1]):$cp['content'];
             $cp['mailserver'] = 'Qmail';
             $cp['reason'] = $this->extractReason($cp['reason_text']);
-        } elseif (strstr($c, 'The Postfix program')) {
+        } elseif (str_contains($c, 'Postfix')) {
             // Postfix
             $cp['content'] = trim($c);
             $parts = explode('>:', $c, 2);
             $cp['reason_text'] = trim($parts[1]);
             $cp['mailserver'] = 'Postfix';
-            if (stristr($cp['reason_text'], '550')) {
+            if (str_contains($cp['reason_text'], '550')) {
                 // 550 Invalid recipient, User unknown
                 $cp['reason'] = 550;
-            } elseif (stristr($cp['reason_text'], '553')) {
+            } elseif (str_contains($cp['reason_text'], '553')) {
                 // No such user
                 $cp['reason'] = 553;
-            } elseif (stristr($cp['reason_text'], '551')) {
+            } elseif (str_contains($cp['reason_text'], '551')) {
                 // Mailbox full
                 $cp['reason'] = 551;
-            } elseif (stristr($cp['reason_text'], 'recipient storage full')) {
+            } elseif (str_contains($cp['reason_text'], 'recipient storage full')) {
                 // Mailbox full
                 $cp['reason'] = 551;
             } else {
                 $cp['reason'] = -1;
             }
-        } elseif (strstr($c, 'Your message cannot be delivered to the following recipients:')) {
+        } elseif (str_contains($c, 'Your message cannot be delivered to the following recipients:')) {
             // whoever this is...
             $cp['content'] = trim($c);
             $cp['reason_text'] = trim(strstr($cp['content'], 'Your message cannot be delivered to the following recipients:'));
             $cp['reason_text'] = trim(substr($cp['reason_text'], 0, 500));
             $cp['mailserver'] = 'unknown';
             $cp['reason'] = $this->extractReason($cp['reason_text']);
-        } elseif (strstr($c, 'Diagnostic-Code: X-Notes')) {
+        } elseif (str_contains($c, 'Diagnostic-Code: X-Notes')) {
             // Lotus Notes
             $cp['content'] = trim($c);
             $cp['reason_text'] = trim(strstr($cp['content'], 'Diagnostic-Code: X-Notes'));
