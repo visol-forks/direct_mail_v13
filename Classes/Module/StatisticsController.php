@@ -445,37 +445,43 @@ final class StatisticsController extends MainController
         $htmlSent  = (int)(($textHtml['1'] ?? 0) + ($textHtml['3'] ?? 0));
         $plainSent = (int)($textHtml['2'] ?? 0);
 
+        $statTableBody[] = [
+            'stats_mails_sent',
+            $totalSent,
+            $htmlSent,
+            $plainSent
+        ];
+
+        // show row 'returned' only if entries available
+        if ($table['-127']['counter'] ){
+            $statTableBody[] = [
+                'stats_mails_returned',
+                $this->showWithPercent($table['-127']['counter'], $totalSent),
+                '',
+                ''
+            ];
+        }
+
+        $statTableBody[] = [
+            'stats_HTML_mails_viewed',
+            '',
+            $this->showWithPercent($uniquePingResponses, $htmlSent),
+            ''
+        ];
+
+        $statTableBody[] = [
+            'stats_unique_responses',
+            $this->showWithPercent($uniqueHtmlResponses + $uniquePlainResponses, $totalSent),
+            $this->showWithPercent($uniqueHtmlResponses, $htmlSent),
+            $this->showWithPercent($uniquePlainResponses, $plainSent ? $plainSent : $htmlSent)
+        ];
+
         return [
             'table' => [
                 'head' => [
                     '', 'stats_total', 'stats_HTML', 'stats_plaintext',
                 ],
-                'body' => [
-                    [
-                        'stats_mails_sent',
-                        $totalSent,
-                        $htmlSent,
-                        $plainSent,
-                    ],
-                    [
-                        'stats_mails_returned',
-                        $this->showWithPercent($table['-127']['counter'] ?? 0, $totalSent),
-                        '',
-                        '',
-                    ],
-                    [
-                        'stats_HTML_mails_viewed',
-                        '',
-                        $this->showWithPercent($uniquePingResponses, $htmlSent),
-                        '',
-                    ],
-                    [
-                        'stats_unique_responses',
-                        $this->showWithPercent($uniqueHtmlResponses + $uniquePlainResponses, $totalSent),
-                        $this->showWithPercent($uniqueHtmlResponses, $htmlSent),
-                        $this->showWithPercent($uniquePlainResponses, $plainSent ? $plainSent : $htmlSent),
-                    ],
-                ],
+                'body' => $statTableBody,
             ],
             'uniqueHtmlResponses' => $uniqueHtmlResponses,
             'uniquePlainResponses' => $uniquePlainResponses,
@@ -858,6 +864,11 @@ final class StatisticsController extends MainController
             ],
             'url' => $thisurl,
         ];
+
+        // Don't show table 4 if no records are matching
+        if (!$responseResult) {
+            unset($tables[4]);
+        }
 
         $tempRepository = GeneralUtility::makeInstance(TempRepository::class);
 
