@@ -431,15 +431,15 @@ final class StatisticsController extends MainController
 
         // Unique responses, html
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogHtmlByMid($mailingId);
-        $uniqueHtmlResponses = count($res);//sql_num_rows($res);
+        $uniqueHtmlResponses = $res[0]['COUNT(*)'];
 
         // Unique responses, Plain
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogPlainByMid($mailingId);
-        $uniquePlainResponses = count($res); //sql_num_rows($res);
+        $uniquePlainResponses = $res[0]['COUNT(*)'];
 
         // Unique responses, pings
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogPingByMid($mailingId);
-        $uniquePingResponses = count($res); //sql_num_rows($res);
+        $uniquePingResponses = $res[0]['COUNT(*)'];
 
         $totalSent = (int)(($textHtml['1'] ?? 0) + ($textHtml['2'] ?? 0) + ($textHtml['3'] ?? 0));
         $htmlSent  = (int)(($textHtml['1'] ?? 0) + ($textHtml['3'] ?? 0));
