@@ -104,6 +104,11 @@ final class DmailController extends MainController
         protected bool $savedraft = false,
         protected array $set = [],
     ) {
+        parent::__construct(
+            $this->moduleTemplateFactory,
+            $this->iconFactory,
+            $this->pageRenderer,
+        );
     }
 
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
@@ -179,7 +184,7 @@ final class DmailController extends MainController
         $this->set = is_array($parsedBody['SET'] ?? '') ? $parsedBody['SET'] : [];
 
         if ($this->updatePageTree) {
-            \TYPO3\CMS\Backend\Utility\BackendUtility::setUpdateSignal('updatePageTree');
+            BackendUtility::setUpdateSignal('updatePageTree');
         }
 
         $moduleTemplate = $this->moduleTemplateFactory->create($request);

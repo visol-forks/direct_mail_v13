@@ -74,6 +74,11 @@ final class RecipientListController extends MainController
         protected bool $submit = false,
         protected string $queryConfig = '',
     ) {
+        parent::__construct(
+            $this->moduleTemplateFactory,
+            $this->iconFactory,
+            $this->pageRenderer,
+        );
     }
 
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
