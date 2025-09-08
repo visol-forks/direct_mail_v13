@@ -1282,7 +1282,150 @@ final class StatisticsController extends MainController
             }
         }
 
+        $tables[7] = $this->getTable7($row); // unsent
+        $tables[8] = $this->getTable8($row); // returned
+
         return ['out' => $output, 'compactView' => $compactView, 'thisurl' => $thisurl, 'tables' => $tables];
+    }
+
+    private function getTable7(array $row): array
+    {
+        $tables = [
+            'head' => [
+                'table.head.email',
+                'table.head.mid',
+                'table.head.rid',
+                'table.head.html_sent',
+                'table.head.timestamp',
+                'table.head.parsetime',
+                'table.head.receiptList',
+                'table.head.details',
+                'table.head.response',
+            ],
+            'counter' => 0,
+            'body' => []
+        ];
+
+        $mailingId = (int) $row['uid'];
+        $setup = unserialize($row['query_info']);
+        $unsentCounter = 0;
+
+        $tableName = 'sys_dmail_maillog';
+        $q = $this->getQueryBuilder($tableName);
+
+        $rows = $q->select('html_sent', 'email', 'mid', 'rid', 'failed_sending_attempts', 'tstamp', 'parsetime')
+            ->from($tableName)
+            ->where($q->expr()->eq('response_type', 0))
+            ->andWhere($q->expr()->eq('html_sent', 0))
+            ->andWhere($q->expr()->eq('mid', $mailingId))
+            ->orderBy('rid', 'ASC')
+            ->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            $unsentCounter += 1;
+            if ($row['html_sent'] == 0) {
+                $keys = array_keys($setup['id_lists']);
+                $listType = $keys[0] ? $keys[0] : 'unbekannt';
+                $details = '';
+
+                if ($listType === 'PLAINLIST') {
+                    $itemId = $row['rid'] - 1;
+                    $details = print_r($setup['id_lists']['PLAINLIST'][$itemId], true);
+                } elseif ($listType === 'fe_users') {
+                    $details = 'fe_user uid: ' . $row['rid'];
+                }
+
+                $mailAddress = $row['email'] !== '' ? $row['email'] : 'leere Adresse';
+
+                $tables['body'][] = [
+                    $mailAddress,
+                    $row['mid'],
+                    $row['rid'],
+                    $row['html_sent'],
+                    $row['failed_sending_attempts'],
+                    BackendUtility::datetime($row['tstamp']),
+                    $row['parsetime'],
+                    $listType,
+                    $details
+                ];
+            }
+        }
+
+        $tables['counter'] = $unsentCounter;
+
+        return $unsentCounter > 0
+            ? $tables
+            : [];
+    }
+
+    private function getTable8(array $row): array
+    {
+        $tables = [
+            'head' => [
+                'table.head.email',
+                'table.head.mid',
+                'table.head.rid',
+                'table.head.html_sent',
+                'table.head.attempts',
+                'table.head.timestamp',
+                'table.head.parsetime',
+                'table.head.receiptList',
+                'table.head.details',
+                'table.head.response',
+            ],
+            'counter' => 0,
+            'body' => []
+        ];
+
+        $mailingId = (int) $row['uid'];
+        $setup = unserialize($row['query_info']);
+        $returnedCounter = 0;
+
+        $tableName = 'sys_dmail_maillog';
+        $q = $this->getQueryBuilder($tableName);
+        $rows = $q->select('html_sent', 'email', 'mid', 'rid', 'failed_sending_attempts', 'tstamp', 'parsetime', 'response_type', 'return_content')
+            ->from($tableName)
+            ->where($q->expr()->neq('return_content', '""'))
+            ->andWhere($q->expr()->eq('html_sent', 0))
+            ->andWhere($q->expr()->eq('mid', $mailingId))
+            ->orderBy('rid', 'ASC')
+            ->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            $returnedCounter += 1;
+            if ($row['html_sent'] == 0) {
+                $returnContent = $row['return_content'] != '' ? unserialize($row['return_content']) : ['content' => ''];
+                $keys = array_keys($setup['id_lists']);
+                $listType = $keys[0] ? $keys[0] : 'unbekannt';
+                if ($listType === 'PLAINLIST') {
+                    $itemId = $row['rid'] - 1;
+                    $details = print_r($setup['id_lists']['PLAINLIST'][$itemId], true);
+                } elseif ($listType === 'fe_users') {
+                    $details = 'fe_user uid: ' . $row['rid'];
+                }
+
+                $returnDetails = substr($returnContent['content'], 0, 250) . '...';
+                $mailAddress = $row['email'] !== '' ? $row['email'] : 'leere Adresse';
+                $tables['body'][] = [
+                    $mailAddress,
+                    $row['mid'],
+                    $row['rid'],
+                    $row['html_sent'],
+                    $row['failed_sending_attempts'],
+                    BackendUtility::datetime($row['tstamp']),
+                    $row['parsetime'],
+                    $listType,
+                    $details,
+                    $returnDetails
+                ];
+            }
+        }
+
+        $tables['counter'] = $returnedCounter;
+
+        return $returnedCounter > 0
+            ? $tables
+            : [];
     }
 
     private function getIdLists($rrows): array
