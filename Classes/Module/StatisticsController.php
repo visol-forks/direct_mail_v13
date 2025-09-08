@@ -1651,17 +1651,7 @@ final class StatisticsController extends MainController
                 $url = $pathSite . $url;
             }
 
-            $content = GeneralUtility::makeInstance(FetchUtility::class)->getContents($url);
-            if (is_string($content) && preg_match('/\<\s*title\s*\>(.*)\<\s*\/\s*title\s*\>/i', $content, $matches)) {
-                // get the page title
-                $contentTitle = GeneralUtility::fixed_lgd_cs(trim($matches[1]), 50);
-            } else {
-                // file?
-                // https://api.typo3.org/main/_general_utility_8php_source.html
-                $file = GeneralUtility::split_fileref($url);
-                $contentTitle = $file['file'];
-            }
-
+            $contentTitle = $url;
         }
 
         if ($this->implodedParams['showContentTitle'] == 1) {
