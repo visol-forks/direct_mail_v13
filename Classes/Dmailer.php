@@ -58,6 +58,7 @@ class Dmailer implements LoggerAwareInterface
     protected string $userDmailerLang = 'en';
     protected bool $testmail = false;
     protected string $charset = '';
+    public bool $hasSendingError = false;
 
     /*
      * @var string
@@ -832,7 +833,9 @@ class Dmailer implements LoggerAwareInterface
 
             $finished = $this->masssendList($query_info, $row['uid']);
 
-            if ($finished) {
+            if ($finished && !$this->hasSendingError) {
+                // We only mark the mailing as finished if there were no errors
+                // If there were errors, failed recipients are retried in the next run
                 $this->setBeginEnd((int)$row['uid'], 'end');
             }
         } else {
@@ -1008,6 +1011,7 @@ class Dmailer implements LoggerAwareInterface
             }
             return true;
         } catch (\Exception $e) {
+            $this->hasSendingError = true;
             $this->logger->warning(sprintf('E-mail could not be sent to %s: %s (%s)', $recipient->getAddress(), $e->getMessage(), $e->getCode()));
 
             if ($logUid === 0) {
