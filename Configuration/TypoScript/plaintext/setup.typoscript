@@ -5,11 +5,11 @@
 ##
 
 [request && traverse(request.getQueryParams(), "type") == 99]
-// add template path for fluid_styled_content
-lib.contentElement {
-  templateRootPaths.100 = EXT:direct_mail/Resources/Private/Plaintext/FluidContentElement/Templates/
-  layoutRootPaths.100 = EXT:direct_mail/Resources/Private/Plaintext/FluidContentElement/Layouts/
-}
+  // add template path for fluid_styled_content
+  lib.contentElement {
+    templateRootPaths.100 = EXT:direct_mail/Resources/Private/Plaintext/FluidContentElement/Templates/
+    layoutRootPaths.100 = EXT:direct_mail/Resources/Private/Plaintext/FluidContentElement/Layouts/
+  }
 [global]
 
 plugin.tx_directmail_pi1 = USER
@@ -31,29 +31,29 @@ plugin.tx_directmail_pi1 {
   header.1.postLineLen = 76
   header.1.preLineBlanks = 0
   header.1.postLineBlanks = 0
-  header.1.preBlanks=1
+  header.1.preBlanks = 1
   header.1.postBlanks = 0
   header.1.stdWrap.case = upper
   header.1.removeSplitChar =
   header.1.autonumber = 0
 
   header.2 < .header.1
-  header.2.preLineChar=*
-  header.2.postLineChar=*
+  header.2.preLineChar = *
+  header.2.postLineChar = *
 
-  header.3.preBlanks=2
-  header.3.postBlanks=1
+  header.3.preBlanks = 2
+  header.3.postBlanks = 1
   header.3.stdWrap.case = upper
 
   header.4 < .header.1
-  header.4.preLineChar= =
-  header.4.postLineChar= =
-  header.4.preLineBlanks= 1
-  header.4.postLineBlanks= 1
+  header.4.preLineChar = =
+  header.4.postLineChar = =
+  header.4.preLineBlanks = 1
+  header.4.postLineBlanks = 1
 
   header.5.removeSplitChar = {$plugin.tx_directmail_pi1.removeSplitChar}
-  header.5.preBlanks=1
-  header.5.autonumber=1
+  header.5.preBlanks = 1
+  header.5.autonumber = 1
   header.5.prefix = |: >> |
 
   defaultOutput (
@@ -121,26 +121,26 @@ tx_directmail_pi1 = PAGE
 tx_directmail_pi1.typeNum = 99
 
 tx_directmail_pi1.config {
-	disableAllHeaderCode = 1
+  disableAllHeaderCode = 1
   additionalHeaders.10.header = Content-type:text/plain
 }
 
 tx_directmail_pi1 {
-	10 = FLUIDTEMPLATE
-	10 {
-		templateName = Plain
-		templateRootPaths {
-			10 = EXT:direct_mail/Resources/Private/Plaintext/Templates/
-		}
-		layoutRootPaths {
-			10 = EXT:direct_mail/Resources/Private/Plaintext/Layouts/
-		}
-		variables {
-			contentNormal < styles.content.get
-			contentNormal.select.where = {#colPos}=0
-			date = TEXT
-			date.data = date:U
-			date.strftime = %e. %B %Y
-		}
-	}
+  10 = FLUIDTEMPLATE
+  10 {
+    templateName = Plain
+    templateRootPaths {
+      10 = EXT:direct_mail/Resources/Private/Plaintext/Templates/
+    }
+    layoutRootPaths {
+      10 = EXT:direct_mail/Resources/Private/Plaintext/Layouts/
+    }
+    variables {
+      contentNormal < styles.content.get
+      contentNormal.select.where = {#colPos}=0
+      date = TEXT
+      date.data = date:U
+      date.strftime = %e. %B %Y
+    }
+  }
 }
