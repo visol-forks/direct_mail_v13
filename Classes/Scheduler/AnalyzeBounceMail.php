@@ -69,6 +69,11 @@ class AnalyzeBounceMail extends AbstractTask
     protected $maxProcessed;
 
     /**
+     * Keep the mails on server after processing
+     */
+    protected bool $keepMailsOnServer;
+
+    /**
      * @return int
      */
     public function getPort()
@@ -164,6 +169,16 @@ class AnalyzeBounceMail extends AbstractTask
         $this->maxProcessed = (int)$maxProcessed;
     }
 
+    public function isKeepMailsOnServer(): bool
+    {
+        return $this->keepMailsOnServer;
+    }
+
+    public function setKeepMailsOnServer(bool $keepMailsOnServer): void
+    {
+        $this->keepMailsOnServer = (bool)$keepMailsOnServer;
+    }
+
     /**
      * execute the scheduler task.
      *
@@ -184,7 +199,7 @@ class AnalyzeBounceMail extends AbstractTask
             /** @var Message $message The message object */
             foreach ($messages as $message) {
                 // process the mail
-                if ($this->processBounceMail($message)) {
+                if ($this->processBounceMail($message) && !$this->isKeepMailsOnServer()) {
                     // set delete
                     $message->delete();
                 } else {
