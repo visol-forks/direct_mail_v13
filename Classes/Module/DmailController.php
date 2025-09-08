@@ -179,7 +179,7 @@ final class DmailController extends MainController
         $this->set = is_array($parsedBody['SET'] ?? '') ? $parsedBody['SET'] : [];
 
         if ($this->updatePageTree) {
-            \TYPO3\CMS\Backend\Utility\BackendUtility::setUpdateSignal('updatePageTree');
+            BackendUtility::setUpdateSignal('updatePageTree');
         }
 
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
