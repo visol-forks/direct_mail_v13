@@ -150,10 +150,10 @@ class SysDmailRepository extends MainRepository
         ->fetchAllAssociative();
     }
 
-    /**
-     * @return array|bool
+     /**
+     * @return array|bool|null
      */
-    public function selectForPageInfo(int $id) //: array|bool
+    public function selectForPageInfo(int $id) //: array|bool|null
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
@@ -162,11 +162,11 @@ class SysDmailRepository extends MainRepository
         ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-        ->selectLiteral($this->table . '.uid', 
-                        $this->table . '.subject', 
+        ->selectLiteral($this->table . '.uid',
+                        $this->table . '.subject',
                         $this->table . '.scheduled',
-                        $this->table . '.scheduled_begin', 
-                        $this->table . '.scheduled_end', 
+                        $this->table . '.scheduled_begin',
+                        $this->table . '.scheduled_end',
                         'COUNT(' . $this->tableSysDmailMaillog . '.mid) AS count')
         ->from($this->table, $this->table)
         ->leftJoin(
@@ -198,6 +198,12 @@ class SysDmailRepository extends MainRepository
             $queryBuilder->expr()->gt(
                 $this->tableSysDmailMaillog . '.html_sent',
                 $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            ),
+            $queryBuilder->or(
+                $queryBuilder->expr()->gt(
+                    $this->tableSysDmailMaillog . '.failed_sending_attempts',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
             )
         )
         ->groupBy($this->tableSysDmailMaillog . '.mid')
@@ -362,7 +368,7 @@ class SysDmailRepository extends MainRepository
             ->from($this->table)
             ->where(
                 $queryBuilder->expr()->eq(
-                    'type', 
+                    'type',
                     $queryBuilder->createNamedParameter($type, Connection::PARAM_INT)
                 )
             )
@@ -379,7 +385,7 @@ class SysDmailRepository extends MainRepository
             ->from($this->table)
             ->where(
                 $queryBuilder->expr()->eq(
-                    'uid', 
+                    'uid',
                     $queryBuilder->createNamedParameter($draftUid, Connection::PARAM_INT)
                 )
             )

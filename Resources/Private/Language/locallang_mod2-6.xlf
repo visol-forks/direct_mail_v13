@@ -977,8 +977,17 @@
 			<trans-unit id="view_media" resname="view_media">
 				<source>Include media:</source>
 			</trans-unit>
-			<trans-unit id="view_recipient_total_sent" resname="view_recipient_total_sent">
-				<source>Recipient total/sent:</source>
+			<trans-unit id="view_recipient_total" resname="view_recipient_total">
+				<source>Recipient total:</source>
+			</trans-unit>
+			<trans-unit id="view_recipient_total_sent" resname="view_recipient_sent">
+				<source>Recipient sent:</source>
+			</trans-unit>
+			<trans-unit id="view_recipient_total_processed" resname="view_recipient_total_processed">
+				<source>Recipient Processed:</source>
+			</trans-unit>
+			<trans-unit id="view_recipient_total_unprocessed" approved="yes">
+				<source>Recipient unprocessed</source>
 			</trans-unit>
 			<trans-unit id="view_replyto" resname="view_replyto">
 				<source>Reply:</source>
@@ -1044,7 +1053,7 @@
 				<source>no access</source>
 			</trans-unit>
 			<trans-unit id="table.not_counted">
-				<source>Nicht gezählte</source>
+				<source>Nicht gezählte (mutmasslich nicht versendete)</source>
 			</trans-unit>
 			<trans-unit id="table.not_counted_text">
 				<source>Mutmasslich nicht gesendete</source>
@@ -1071,7 +1080,7 @@
 				<source>Timestamp</source>
 			</trans-unit>
 			<trans-unit id="table.head.attempts">
-				<source># Fehlversuche</source>
+				<source># Versuche</source>
 			</trans-unit>
 			<trans-unit id="table.head.parsetime">
 				<source>Parsetime</source>

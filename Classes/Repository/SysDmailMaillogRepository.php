@@ -692,10 +692,11 @@ class SysDmailMaillogRepository extends MainRepository
      * @param int $parsetime Parse time of the email
      * @param int $html Set if HTML email is sent
      * @param string $email Recipient's email
+     * @param int $attempt number of sending attempts
      *
      * @return int True on success or False on error
      */
-    public function dmailerAddToMailLog(int $mid, string $rid, int $size, int $parsetime, int $html, string $email): int
+    public function dmailerAddToMailLog(int $mid, string $rid, int $size, int $parsetime, int $html, string $email, int $attempt): int
     {
         [$rtbl, $rid] = explode('_', $rid);
 
@@ -712,6 +713,7 @@ class SysDmailMaillogRepository extends MainRepository
                 'size' => $size,
                 'parsetime' => $parsetime,
                 'html_sent' => $html,
+                'failed_sending_attempts' => $attempt,
             ])
             ->executeStatement();
 
@@ -765,7 +767,7 @@ class SysDmailMaillogRepository extends MainRepository
 
         if ($numberOfLogEntriesWithMoreThan5FailedAttempts > 0) {
             throw new \Exception(
-                'In this mail delivery, there is at least one recipient with 5 failed sending attempts (see Statistics module). This case cannot be handled, therefore exiting the sending process. Try cleaning up manually before sending again.',
+                'In this mail delivery for mid ' . $mid . ' , there is at least one recipient with 5 failed sending attempts (see Statistics module). This case cannot be handled, therefore exiting the sending process. Try cleaning up manually before sending again.',
                 1650837797
             );
         }
