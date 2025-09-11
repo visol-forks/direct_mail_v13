@@ -708,7 +708,7 @@ class Dmailer implements LoggerAwareInterface
                 $failedSendingAttempt = 0;
                 $htmlSent = $this->dmailer_sendAdvanced($recipRow, $tableKey);
 
-                if ($this->hasSendingError === true) {
+                if ($this->hasSendingError) {
                     $failedSendingAttempt = 1;
                     $htmlSent = 0;
                 }
@@ -728,16 +728,17 @@ class Dmailer implements LoggerAwareInterface
             }
             $this->logger->info('$logEntryForRecipient: ' . print_r($logEntryForRecipient, 1));
 
-            if ($logUid) {
-                $values = [
-                    'logUid' => $logUid,
-                    'html_sent' => $this->sendAdvanced($recipRow, $tableKey),
-                    'parsetime' => $this->getMilliseconds() - $parseTimeStart,
-                    'size' => strlen($this->message)
-                ];
+            if (is_array($logEntryForRecipient) && !$logUid) {
+                $htmlSentCode = $this->dmailer_sendAdvanced($recipRow, $tableKey);
 
                 try {
-                    $ok = $sysDmailMaillogRepository->updateSysDmailMaillogForShipOfMail($values);
+                    $ok = $sysDmailMaillogRepository->updateSysDmailMaillogForShipOfMail(
+                        logUid: $logEntryForRecipient['uid'],
+                        htmlSent: $htmlSentCode,
+                        parseTime: self::getMilliseconds() - $pt,
+                        size: strlen($this->message),
+                        failedSendingAttempts: $this->hasSendingError ? $logEntryForRecipient['failed_sending_attempts'] + 1 : $logEntryForRecipient['failed_sending_attempts'],
+                    );
                 } catch (\Exception $e) {
                     $ok = false;
                     $message = $e->getMessage();
@@ -755,6 +756,8 @@ class Dmailer implements LoggerAwareInterface
                     $this->sendPerCycle = 0;
                     $this->dmailer_setBeginEnd($this->dmailer['sys_dmail_rec']['uid'], 'end');
                     die($message);
+                } elseif ($logUid) {
+                    // TODO: Nothing to do because we sent above when $logEntryForRecipient === false
                 }
             } else {
                 // stop the script if dummy log can't be made
@@ -992,7 +995,7 @@ class Dmailer implements LoggerAwareInterface
     {
         $tableName = 'sys_dmail_maillog';
         $queryBuilder = $this->getQueryBuilder($tableName);
-        $queryBuilder->select('uid', 'mid', 'html_sent', 'email')
+        $queryBuilder->select('uid', 'mid', 'html_sent', 'email', 'failed_sending_attempts')
             ->from($tableName)
             ->where($queryBuilder->expr()->eq('email', $queryBuilder->createNamedParameter($recipientEmail, \PDO::PARAM_STR)))
             ->andWhere($queryBuilder->expr()->eq('mid', $queryBuilder->createNamedParameter($mailId, \PDO::PARAM_INT)))
@@ -1079,7 +1082,7 @@ class Dmailer implements LoggerAwareInterface
             }
         }
 
-        if ($this->hasSendingError === false) {
+        if (!$this->hasSendingError) {
             try {
                 #throw new \Exception('test');
                 $sent = $mailer->send();
@@ -1101,7 +1104,7 @@ class Dmailer implements LoggerAwareInterface
                 $this->logger->info('$mailer->send() Exception "' . $recipRow['email']);
                 $message = sprintf('E-mail could not be sent to %s: %s (%s)', $emailList, $e->getMessage(), $e->getCode());
                 $this->logger->warning($message);
-                $this->logFailedAttempt($recipRow, $tableNameChar);
+                // The actual logging to the maillog will be done in shipOfMail()
                 $this->sendMailAlert('DirectMail Error', $message);
                 return false;
             }
@@ -1121,7 +1124,8 @@ class Dmailer implements LoggerAwareInterface
             return false;
         }
         $logEntryForRecipient = $this->dmailer_getMailLogEntryForRecipient($mid, $recipRow['email'], $tableNameChar);
-        if(is_array($logEntryForRecipient) === false) {
+
+        if (!is_array($logEntryForRecipient)) {
             $logUid = $sysDmailMaillogRepository->dmailerAddToMailLog(
                 $mid,
                 $tableNameChar . '_' . $recipRow['uid'],
