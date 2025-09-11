@@ -17,7 +17,6 @@ namespace DirectMailTeam\DirectMail\Scheduler;
 
 use DirectMailTeam\DirectMail\Repository\SysDmailRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
@@ -27,8 +26,6 @@ use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
 /**
  * Aditional fields provider class for usage with the Scheduler's MailFromDraft task
- *
- * @author		Benjamin Mack <benni@typo3.org>
  */
 class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
 {
@@ -36,17 +33,16 @@ class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
      * This method is used to define new fields for adding or editing a task
      * In this case, it adds an email field
      *
-     * @param	array					$taskInfo reference to the array containing the info used in the add/edit form
-     * @param	object					$task when editing, reference to the current task object. Null when adding.
-     * @param	SchedulerModuleController		$schedulerModuleController reference to the calling object (Scheduler's BE module)
-     *
-     * @return	array					Array containg all the information pertaining to the additional fields
-     *									The array is multidimensional, keyed to the task class name and each field's id
-     *									For each field it provides an associative sub-array with the following:
-     *										['code']		=> The HTML code for the field
-     *										['label']		=> The label of the field (possibly localized)
-     *										['cshKey']		=> The CSH key for the field
-     *										['cshLabel']	=> The code of the CSH label
+     * @param   array                   $taskInfo reference to the array containing the info used in the add/edit form
+     * @param   object                  $task when editing, reference to the current task object. Null when adding.
+     * @param   SchedulerModuleController       $schedulerModuleController reference to the calling object (Scheduler's BE module)
+     * @return  array                   Array containg all the information pertaining to the additional fields
+     *                                  The array is multidimensional, keyed to the task class name and each field's id
+     *                                  For each field it provides an associative sub-array with the following:
+     *                                      ['code']        => The HTML code for the field
+     *                                      ['label']       => The label of the field (possibly localized)
+     *                                      ['cshKey']      => The CSH key for the field
+     *                                      ['cshLabel']    => The code of the CSH label
      */
     public function getAdditionalFields(array &$taskInfo, $task, SchedulerModuleController $schedulerModuleController)
     {
@@ -54,7 +50,7 @@ class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
         if (empty($taskInfo['selecteddraft'])) {
             // In case of edit, and editing a test task, set to internal value if not data was submitted already
             // Otherwise set an empty value, as it will not be used anyway
-            $taskInfo['selecteddraft'] = ($schedulerModuleController->getCurrentAction() === SchedulerManagementAction::EDIT) ? $task->draftUid : '';
+            $taskInfo['selecteddraft'] = $schedulerModuleController->getCurrentAction() === SchedulerManagementAction::EDIT ? $task->draftUid : '';
         }
 
         // fetch all available drafts
@@ -80,7 +76,7 @@ class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
         } else {
             foreach ($drafts as $draft) {
                 // see #44577
-                $selected = (($schedulerModuleController->getCurrentAction() === SchedulerManagementAction::EDIT && $task->draftUid === $draft['uid']) ? ' selected="selected"' : '');
+                $selected = $schedulerModuleController->getCurrentAction() === SchedulerManagementAction::EDIT && $task->draftUid === $draft['uid'] ? ' selected="selected"' : '';
                 $fieldHtml .= '<option value="' . $draft['uid'] . '"' . $selected . '>' . $draft['subject'] . ' [' . $draft['uid'] . ']</option>';
             }
         }
@@ -103,10 +99,9 @@ class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
      * This method checks any additional data that is relevant to the specific task
      * If the task class is not relevant, the method is expected to return true
      *
-     * @param	array					$submittedData Reference to the array containing the data submitted by the user
-     * @param	SchedulerModuleController		$schedulerModuleController Reference to the calling object (Scheduler's BE module)
-     *
-     * @return	bool					True if validation was ok (or selected class is not relevant), false otherwise
+     * @param   array                   $submittedData Reference to the array containing the data submitted by the user
+     * @param   SchedulerModuleController       $schedulerModuleController Reference to the calling object (Scheduler's BE module)
+     * @return  bool                    True if validation was ok (or selected class is not relevant), false otherwise
      */
     public function validateAdditionalFields(array &$submittedData, SchedulerModuleController $schedulerModuleController)
     {
@@ -116,7 +111,7 @@ class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
 
             $draftsInternal = GeneralUtility::makeInstance(SysDmailRepository::class)->getDraftByUid($draftUid);
 
-            if ($draftRecord['type'] == 2 || $draftRecord['type'] == 3) {
+            if ($draftRecord['type'] === 2 || $draftRecord['type'] === 3) {
                 $result = true;
             } else {
                 // TODO: localization
@@ -136,8 +131,8 @@ class MailFromDraftAdditionalFields extends AbstractAdditionalFieldProvider
      * This method is used to save any additional input into the current task object
      * if the task class matches
      *
-     * @param	array				$submittedData Array containing the data submitted by the user
-     * @param	AbstractTask	$task Reference to the current task object
+     * @param   array               $submittedData Array containing the data submitted by the user
+     * @param   AbstractTask    $task Reference to the current task object
      */
     public function saveAdditionalFields(array $submittedData, AbstractTask $task): void
     {

@@ -37,7 +37,6 @@ class PagesRepository extends MainRepository
          * typo3/sysext/core/Classes/Domain/Repository/PageRepository.php
          *
          * Regards custom configurations, otherwise ignores spacers (199), recyclers (255) and folders (254)
-         *
          **/
 
         return $queryBuilder
@@ -127,8 +126,6 @@ class PagesRepository extends MainRepository
     }
 
     /**
-     * @param int $pageUid
-     * @param string $tsConf
      * @return int
      */
     public function updatePageTSconfig(int $pageUid, string $tsConf)
@@ -136,8 +133,8 @@ class PagesRepository extends MainRepository
         $connection = $this->getConnection($this->table);
         return $connection->update(
             $this->table,
-            [ 'TSconfig' => $tsConf ],
-            [ 'uid' => $pageUid ] // where
+            ['TSconfig' => $tsConf],
+            ['uid' => $pageUid] // where
         );
     }
 

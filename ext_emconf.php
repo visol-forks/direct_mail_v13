@@ -16,10 +16,8 @@ $EM_CONF[$_EXTKEY] = [
             'tt_address' => '9.0.0-9.0.99',
             'php' => '8.2.0-8.4.99',
         ],
-        'conflicts' => [
-        ],
-        'suggests' => [
-        ],
+        'conflicts' => [],
+        'suggests' => [],
     ],
     'autoload' => [
         'psr-4' => [

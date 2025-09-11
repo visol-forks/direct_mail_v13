@@ -70,8 +70,7 @@ class SysDmailRepository extends MainRepository
                     $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)
                 )
             );
-        }
-        else {
+        } else {
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->eq(
                     'scheduled',
@@ -151,8 +150,8 @@ class SysDmailRepository extends MainRepository
     }
 
      /**
-     * @return array|bool|null
-     */
+      * @return array|bool|null
+      */
     public function selectForPageInfo(int $id) //: array|bool|null
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
@@ -162,12 +161,14 @@ class SysDmailRepository extends MainRepository
         ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-        ->selectLiteral($this->table . '.uid',
-                        $this->table . '.subject',
-                        $this->table . '.scheduled',
-                        $this->table . '.scheduled_begin',
-                        $this->table . '.scheduled_end',
-                        'COUNT(' . $this->tableSysDmailMaillog . '.mid) AS count')
+        ->selectLiteral(
+            $this->table . '.uid',
+            $this->table . '.subject',
+            $this->table . '.scheduled',
+            $this->table . '.scheduled_begin',
+            $this->table . '.scheduled_end',
+            'COUNT(' . $this->tableSysDmailMaillog . '.mid) AS count'
+        )
         ->from($this->table, $this->table)
         ->leftJoin(
             $this->table,
@@ -206,28 +207,28 @@ class SysDmailRepository extends MainRepository
                 )
             )
         )->orWhere(
-                $queryBuilder->expr()->eq(
-                    $this->table . '.pid',
-                    $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->in(
-                    $this->table . '.type',
-                    $queryBuilder->createNamedParameter([0, 1], Connection::PARAM_INT_ARRAY)
-                ),
-                $queryBuilder->expr()->eq(
-                    $this->table . '.issent',
-                    $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    $this->tableSysDmailMaillog . '.response_type',
+            $queryBuilder->expr()->eq(
+                $this->table . '.pid',
+                $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
+            ),
+            $queryBuilder->expr()->in(
+                $this->table . '.type',
+                $queryBuilder->createNamedParameter([0, 1], Connection::PARAM_INT_ARRAY)
+            ),
+            $queryBuilder->expr()->eq(
+                $this->table . '.issent',
+                $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)
+            ),
+            $queryBuilder->expr()->eq(
+                $this->tableSysDmailMaillog . '.response_type',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            ),
+            $queryBuilder->or(
+                $queryBuilder->expr()->gt(
+                    $this->tableSysDmailMaillog . '.failed_sending_attempts',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $queryBuilder->or(
-                    $queryBuilder->expr()->gt(
-                        $this->tableSysDmailMaillog . '.failed_sending_attempts',
-                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                    )
                 )
+            )
         )
         ->groupBy($this->tableSysDmailMaillog . '.mid')
         ->orderBy($this->table . '.scheduled', 'DESC')
@@ -270,9 +271,6 @@ class SysDmailRepository extends MainRepository
         ->fetchAllAssociative();
     }
 
-    /**
-     * @return int
-     */
     public function updateSysDmail(int $uid, string $charset, string $mailContent): int
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
@@ -293,8 +291,6 @@ class SysDmailRepository extends MainRepository
     }
 
     /**
-     * @param int $uid
-     * @param array $updateData
      * @return int
      */
     public function updateSysDmailRecord(int $uid, array $updateData)
@@ -303,7 +299,7 @@ class SysDmailRepository extends MainRepository
         return $connection->update(
             $this->table, // table
             $updateData, // value array
-            [ 'uid' => $uid ] // where
+            ['uid' => $uid] // where
         );
     }
 
@@ -420,7 +416,7 @@ class SysDmailRepository extends MainRepository
     {
         $connection = $this->getConnection($this->table);
         $connection->insert($this->table, $dmRecord);
-        return (int)$connection->lastInsertId();
+        return (int) $connection->lastInsertId();
     }
 
     public function updateDMailRecord(int $dmailUid, array $dmRecord): int
@@ -429,7 +425,7 @@ class SysDmailRepository extends MainRepository
         return $connection->update(
             $this->table, // table
             $dmRecord, // value array
-            [ 'uid' => $dmailUid ] // where
+            ['uid' => $dmailUid] // where
         );
     }
 }

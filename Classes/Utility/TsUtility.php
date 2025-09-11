@@ -16,7 +16,6 @@ class TsUtility
      *
      * @param array $p TypoScript structure
      * @param string $k Prefix string
-     *
      * @return array Imploded TypoScript objectstring/values
      */
     public function implodeTSParams(array $p, string $k = ''): array
@@ -44,12 +43,11 @@ class TsUtility
      * THIS DOES NOT CHECK ANY PERMISSIONS. SHOULD IT?
      * More documentation is needed.
      *
+     * @see implodeTSParams(), getPagesTSconfig()
+     *
      * @param int $id Page id
      * @param array $pageTs Page TS array to write
      * @param string $tsConfPrefix Prefix for object paths
-     *
-     *
-     * @see implodeTSParams(), getPagesTSconfig()
      */
     public function updatePagesTSconfig(int $id, array $pageTs, string $tsConfPrefix): bool
     {
@@ -80,7 +78,7 @@ class TsUtility
                 foreach ($set as $f => $v) {
                     $inserted = 0;
                     foreach ($tsLines as $ki => $kv) {
-                        if (substr($kv, 0, strlen($f) + 1) == $f . '=') {
+                        if (substr($kv, 0, strlen($f) + 1) === $f . '=') {
                             $tsLines[$ki] = $f . '=' . $v;
                             $inserted = 1;
                             break;
@@ -96,7 +94,7 @@ class TsUtility
 
                 // store those changes
                 $tsConf = implode(LF, $tsLines);
-                $done = (bool)GeneralUtility::makeInstance(PagesRepository::class)->updatePageTSconfig((int)$id, $tsConf);
+                $done = (bool) GeneralUtility::makeInstance(PagesRepository::class)->updatePageTSconfig((int) $id, $tsConf);
             }
         }
 

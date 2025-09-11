@@ -12,12 +12,10 @@ class DmRegistryUtility
 {
     /**
      * Create an access token and save it in the Registry
-     *
-     * @return string
      */
     public function createAndGetAccessToken(): string
     {
-        /* @var \TYPO3\CMS\Core\Registry $registry */
+        /** @var Registry $registry */
         $registry = GeneralUtility::makeInstance(Registry::class);
         $accessToken = GeneralUtility::makeInstance(Random::class)->generateRandomHexString(32);
         $registry->set('tx_directmail', 'accessToken', $accessToken);
@@ -29,12 +27,10 @@ class DmRegistryUtility
      * Create an access token and save it in the Registry
      *
      * @param string $accessToken The access token to validate
-     *
-     * @return bool
      */
     public function validateAndRemoveAccessToken(string $accessToken): bool
     {
-        /* @var \TYPO3\CMS\Core\Registry $registry */
+        /** @var Registry $registry */
         $registry = GeneralUtility::makeInstance(Registry::class);
         $registeredAccessToken = $registry->get('tx_directmail', 'accessToken');
         if (!empty($registeredAccessToken) && $registeredAccessToken === $accessToken) {

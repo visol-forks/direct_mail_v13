@@ -18,14 +18,10 @@ namespace DirectMailTeam\DirectMail;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Lowlevel\Database\QueryGenerator;
 use TYPO3\CMS\Lowlevel\Controller\DatabaseIntegrityController;
 
 /**
  * Used to generate queries for selecting users in the database
- *
- * @author		Kasper Skårhøj <kasper@typo3.com>
- * @author		Stanislas Rolland <stanislas.rolland(arobas)fructifor.ca>
  */
 class DmQueryGenerator extends DatabaseIntegrityController
 {
@@ -43,7 +39,7 @@ class DmQueryGenerator extends DatabaseIntegrityController
                 if ($this->showFieldAndTableNames) {
                     $label .= ' [' . $tN . ']';
                 }
-                $out[] = '<option value="' . htmlspecialchars($tN) . '"' . ($tN == $cur ? ' selected' : '') . '>' . htmlspecialchars($label) . '</option>';
+                $out[] = '<option value="' . htmlspecialchars($tN) . '"' . ($tN === $cur ? ' selected' : '') . '>' . htmlspecialchars($label) . '</option>';
             }
         }
         $out[] = '</select>';
@@ -52,10 +48,6 @@ class DmQueryGenerator extends DatabaseIntegrityController
 
     /**
      * Query marker
-     *
-     * @param array $allowedTables
-     *
-     * @return array
      */
     public function queryMakerDM(ServerRequestInterface $request, array $allowedTables = []): array
     {
@@ -116,7 +108,7 @@ class DmQueryGenerator extends DatabaseIntegrityController
                 // Show query
                 $this->enablePrefix = true;
                 $queryString = $this->getQuery($this->queryConfig);
-                if($queryLimitDisabled) {
+                if ($queryLimitDisabled) {
                     $this->extFieldLists['queryLimit'] = '';
                 }
                 $selectQueryString = $this->getSelectQuery($queryString);

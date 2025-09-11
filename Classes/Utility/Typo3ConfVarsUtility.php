@@ -44,7 +44,7 @@ class Typo3ConfVarsUtility
     {
         $dmConfig = self::getDMConfig();
         if (trim($dmConfig['sendPerCycle'])) {
-            return (int)(trim($dmConfig['sendPerCycle']));
+            return (int) trim($dmConfig['sendPerCycle']);
         }
 
         return 50;
@@ -53,31 +53,31 @@ class Typo3ConfVarsUtility
     public static function getDMConfigNotificationJob(): bool
     {
         $dmConfig = self::getDMConfig();
-        return (bool)($dmConfig['notificationJob'] ?? false);
+        return (bool) ($dmConfig['notificationJob'] ?? false);
     }
 
     public static function getDMConfigSSLVerify(): bool
     {
         $dmConfig = self::getDMConfig();
-        return (bool)($dmConfig['SSLVerify'] ?? true);
+        return (bool) ($dmConfig['SSLVerify'] ?? true);
     }
 
     public static function getDMConfigSSLVerifyPeer(): bool
     {
         $dmConfig = self::getDMConfig();
-        return (bool)($dmConfig['SSLVerifyPeer'] ?? false);
+        return (bool) ($dmConfig['SSLVerifyPeer'] ?? false);
     }
 
     public static function getDMConfigSSLVerifyPeerName(): bool
     {
         $dmConfig = self::getDMConfig();
-        return (bool)($dmConfig['SSLVerifyPeerName'] ?? false);
+        return (bool) ($dmConfig['SSLVerifyPeerName'] ?? false);
     }
 
     public static function getDMConfigUseHttpToFetch(): bool
     {
         $dmConfig = self::getDMConfig();
-        return (bool)($dmConfig['UseHttpToFetch'] ?? false);
+        return (bool) ($dmConfig['UseHttpToFetch'] ?? false);
     }
 
     public static function getDateFormat()

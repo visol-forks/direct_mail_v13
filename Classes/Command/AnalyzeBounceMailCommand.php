@@ -4,6 +4,8 @@ namespace DirectMailTeam\DirectMail\Command;
 
 use DirectMailTeam\DirectMail\Repository\SysDmailMaillogRepository;
 use DirectMailTeam\DirectMail\Utility\ReadmailUtility;
+use Doctrine\DBAL\DBALException;
+use Exception;
 use Fetch\Server;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -60,15 +62,10 @@ class AnalyzeBounceMailCommand extends Command
                 'c',
                 InputOption::VALUE_REQUIRED,
                 'Number of bounce mail to be processed'
-            )
+            );
             //->setHelp('')
-        ;
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
@@ -92,7 +89,7 @@ class AnalyzeBounceMailCommand extends Command
             //$io->writeln($server);
         }
         if ($input->getOption('port')) {
-            $port = (int)$input->getOption('port');
+            $port = (int) $input->getOption('port');
             //$io->writeln($port);
         }
         if ($input->getOption('user')) {
@@ -112,7 +109,7 @@ class AnalyzeBounceMailCommand extends Command
             }
         }
         if ($input->getOption('count')) {
-            $count = (int)$input->getOption('count');
+            $count = (int) $input->getOption('count');
             //$io->writeln($count);
         }
 
@@ -147,6 +144,7 @@ class AnalyzeBounceMailCommand extends Command
 
     /**
      * Process the bounce mail
+     *
      * @param Message $message the message object
      * @return bool true if bounce mail can be parsed, else false
      */
@@ -192,10 +190,10 @@ class AnalyzeBounceMailCommand extends Command
                 return $sysDmailMaillogRepository->analyzeBounceMailAddToMailLog(
                     $this->getTimestampFromAspect(),
                     $midArray,
-                    (int)$cp['reason'],
+                    (int) $cp['reason'],
                     serialize($cp)
                 );
-            } catch (\Doctrine\DBAL\DBALException $e) {
+            } catch (DBALException $e) {
                 // Log $e->getMessage();
                 return false;
             }
@@ -208,12 +206,6 @@ class AnalyzeBounceMailCommand extends Command
      * Create connection to mail server.
      * Return mailServer object or false on error
      *
-     * @param string $server
-     * @param int $port
-     * @param string $type
-     * @param string $user
-     * @param string $password
-     * @param SymfonyStyle $io
      * @return bool|Server
      */
     private function connectMailServer(string $server, int $port, string $type, string $user, string $password, SymfonyStyle $io)
@@ -233,15 +225,12 @@ class AnalyzeBounceMailCommand extends Command
         try {
             $imapStream = $mailServer->getImapStream();
             return $mailServer;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $io->error($this->languageService->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf:scheduler.bounceMail.dataVerification') . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * @return int
-     */
     private function getTimestampFromAspect(): int
     {
         $context = GeneralUtility::makeInstance(Context::class);

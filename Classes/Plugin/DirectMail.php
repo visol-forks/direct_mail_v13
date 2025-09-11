@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace DirectMailTeam\DirectMail\Plugin;
@@ -22,36 +23,21 @@ namespace DirectMailTeam\DirectMail\Plugin;
  * If you do so, the plain text output will appear with type=99.
  */
 
-/**
- * @author  Kasper Skårhøj <kasperYYYY@typo3.com>
- * @author  Stanislas Rolland <stanislas.rolland(arobas)fructifor.ca>
- * @author  Ivan Kartolo <ivan.kartolo@gmail.com>
- */
-
 use DirectMailTeam\DirectMail\DirectMailUtility;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Resource\FileReference;
-use TYPO3\CMS\Core\Utility\MailUtility;
-use TYPO3\CMS\Frontend\DataProcessing\FilesProcessor;
-use Doctrine\DBAL\Result;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\QueryHelper;
-use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
-use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Localization\LocalizationFactory;
 use TYPO3\CMS\Core\Page\DefaultJavaScriptAssetTrait;
+use TYPO3\CMS\Core\Resource\FileReference;
 use TYPO3\CMS\Core\Service\MarkerBasedTemplateService;
-use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\HttpUtility;
-use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Core\Utility\MailUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
+use TYPO3\CMS\Frontend\DataProcessing\FilesProcessor;
 
 /**
  * https://docs.typo3.org/m/typo3/reference-coreapi/12.4/en-us/ExtensionArchitecture/HowTo/FrontendPlugin/AbstractPlugin.html
@@ -73,21 +59,21 @@ class DirectMail
     public $extKey = 'direct_mail';
 
     public $piVars = [
-         'pointer' => '',
+        'pointer' => '',
          // Used as a pointer for lists
-         'mode' => '',
+        'mode' => '',
          // List mode
-         'sword' => '',
+        'sword' => '',
          // Search word
-         'sort' => '',
-     ];
+        'sort' => '',
+    ];
 
     public $internal = [
         'res_count' => 0,
         'results_at_a_time' => 20,
         'maxPages' => 10,
         'currentRow' => [],
-        'currentTable' => ''
+        'currentTable' => '',
     ];
     public $LOCAL_LANG = [];
     protected $LOCAL_LANG_UNSET = [];
@@ -109,13 +95,12 @@ class DirectMail
     protected $request;
     protected $templateService;
 
-
     public $charWidth = 76;
     public $linebreak = LF;
     public $siteUrl;
     public $labelsList = 'header_date_prefix,header_link_prefix,uploads_header,media_header,images_header,image_link_prefix,caption_header,unrendered_content,link_prefix';
 
-    public function __construct($_ = null, TypoScriptFrontendController $frontendController = null, ServerRequestInterface $request = null)
+    public function __construct($_ = null, ?TypoScriptFrontendController $frontendController = null, ?ServerRequestInterface $request = null)
     {
         $this->request = $request ?: $GLOBALS['TYPO3_REQUEST'];
         $this->frontendController = $frontendController ?: $GLOBALS['TSFE'];
@@ -137,8 +122,6 @@ class DirectMail
 
     /**
      * Sets the content object render instance.
-     *
-     * @param \TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer $contentObjectRenderer
      */
     public function setContentObjectRenderer(ContentObjectRenderer $contentObjectRenderer): void
     {
@@ -150,10 +133,8 @@ class DirectMail
      * A content object that renders "tt_content" records. See the comment to this class for TypoScript example of how to trigger it.
      * This detects the CType of the current content element and renders it accordingly. Only wellknown types are rendered.
      *
-     * @param	string	$content Empty, ignore.
-     * @param	array	$conf TypoScript properties for this content object/function call
-     *
-     * @return	string
+     * @param   string  $content Empty, ignore.
+     * @param   array   $conf TypoScript properties for this content object/function call
      */
     public function main(string $content, array $conf): string
     {
@@ -171,7 +152,7 @@ class DirectMail
         }
 
         $lines = [];
-        $cType = (string)$this->cObj->data['CType'];
+        $cType = (string) $this->cObj->data['CType'];
         switch ($cType) {
             case 'header':
                 $lines[] = $this->getHeader();
@@ -191,12 +172,12 @@ class DirectMail
                 $lines[] = $this->getHeader();
                 $list = 'textpic,textmedia';
 
-                if (GeneralUtility::inList($list, $cType) && !($this->cObj->data['imageorient']&24)) {
+                if (GeneralUtility::inList($list, $cType) && !($this->cObj->data['imageorient'] & 24)) {
                     $lines[] = $this->getImages($field);
                     $lines[] = '';
                 }
                 $lines[] = $this->breakContent(strip_tags($this->parseBody($this->cObj->data['bodytext'])));
-                if (GeneralUtility::inList($list, $cType) && ($this->cObj->data['imageorient']&24)) {
+                if (GeneralUtility::inList($list, $cType) && ($this->cObj->data['imageorient'] & 24)) {
                     $lines[] = '';
                     $lines[] = $this->getImages($field);
                 }
@@ -223,7 +204,7 @@ class DirectMail
             case 'html':
                 $lines[] = $this->getHtml();
                 break;
-            case (bool)preg_match('/menu_.*/', $cType):
+            case (bool) preg_match('/menu_.*/', $cType):
                 $lines[] = $this->getHeader();
                 $lines[] = $this->getMenuContent($cType);
                 break;
@@ -305,22 +286,20 @@ class DirectMail
      * Creates a menu/sitemap
      *
      * @param string $cType: menu type
-     * @return	string		$str: Content
+     * @return  string      $str: Content
      */
     public function getMenuContent(string $cType): string
     {
-        $str = $this->cObj->cObjGetSingle(
+        return $this->cObj->cObjGetSingle(
             $GLOBALS['TYPO3_REQUEST']->getAttribute('frontend.typoscript')->getSetupArray()['tt_content.'][$cType],
             $GLOBALS['TYPO3_REQUEST']->getAttribute('frontend.typoscript')->getSetupArray()['tt_content.'][$cType . '.']
         );
-
-        return $str;
     }
 
     /**
      * Creates a shortcut ("Insert Records")
      *
-     * @return	string		Plain Content without HTML comments
+     * @return  string      Plain Content without HTML comments
      */
     public function getShortcut(): string
     {
@@ -333,9 +312,8 @@ class DirectMail
     /**
      * Creates an HTML element (stripping tags of course)
      *
-     * @param	mixed	$str HTML content (as string or in an array) to process. If not passed along, the bodytext field is used.
-     *
-     * @return	string		Plain content.
+     * @param   mixed   $str HTML content (as string or in an array) to process. If not passed along, the bodytext field is used.
+     * @return  string      Plain content.
      */
     public function getHtml($str = []): string
     {
@@ -344,7 +322,7 @@ class DirectMail
                 preg_replace(
                     '/<br\s*\/?>/i',
                     LF,
-                    $this->parseBody(is_string($str) ? $str: $this->cObj->data['bodytext'])
+                    $this->parseBody(is_string($str) ? $str : $this->cObj->data['bodytext'])
                 )
             )
         );
@@ -353,13 +331,14 @@ class DirectMail
     /**
      * Creates a header (used for most elements)
      *
-     * @return	string		Content
      * @see renderHeader()
+     *
+     * @return  string      Content
      */
     public function getHeader(): string
     {
         // links...
-        return $this->renderHeader($this->cObj->data['header'], (int)$this->cObj->data['header_layout']);
+        return $this->renderHeader($this->cObj->data['header'], (int) $this->cObj->data['header_layout']);
     }
 
     /**
@@ -371,7 +350,7 @@ class DirectMail
     public function getImages(string $fieldname): string
     {
         $configuration = [
-            '10' => 'TYPO3\CMS\Frontend\DataProcessing\FilesProcessor',
+            '10' => FilesProcessor::class,
             '10.' => [
                 'references.' => [
                     'fieldName' => $fieldname,
@@ -413,10 +392,9 @@ class DirectMail
     /**
      * Parsing the bodytext field content, removing typical entities and <br /> tags.
      *
-     * @param	string		$str Field content from "bodytext" or other text field
-     * @param	string		$altConf Altername conf name (especially when bodyext field in other table then tt_content)
-     *
-     * @return	string		Processed content
+     * @param   string      $str Field content from "bodytext" or other text field
+     * @param   string      $altConf Altername conf name (especially when bodyext field in other table then tt_content)
+     * @return  string      Processed content
      */
     public function parseBody(string $str, string $altConf = 'bodytext'): string
     {
@@ -445,10 +423,9 @@ class DirectMail
     /**
      * Creates a list of links to uploaded files.
      *
-     * @param	string		$str List of uploaded filenames from "uploads/media/" (or $upload_path)
-     * @param	string		$uploadPath Alternative path value
-     *
-     * @return	string		Content
+     * @param   string      $str List of uploaded filenames from "uploads/media/" (or $upload_path)
+     * @param   string      $uploadPath Alternative path value
+     * @return  string      Content
      */
     public function renderUploads(string $str, string $uploadPath = 'uploads/media/'): string
     {
@@ -469,21 +446,20 @@ class DirectMail
     /**
      * Renders a content element header, observing the layout type giving different header formattings
      *
-     * @param	string		$str The header string
-     * @param	int		$type The layout type of the header (in the content element)
-     *
-     * @return	string		Content
+     * @param   string      $str The header string
+     * @param   int     $type The layout type of the header (in the content element)
+     * @return  string      Content
      */
     public function renderHeader(string $str, int $type = 0): string
     {
         if ($str) {
             $hConf = $this->conf['header.'];
-            $defaultType = DirectMailUtility::intInRangeWrapper((int)$hConf['defaultType'], 1, 5);
-            $type = DirectMailUtility::intInRangeWrapper((int)$type, 0, 6);
+            $defaultType = DirectMailUtility::intInRangeWrapper((int) $hConf['defaultType'], 1, 5);
+            $type = DirectMailUtility::intInRangeWrapper((int) $type, 0, 6);
             if (!$type) {
                 $type = $defaultType;
             }
-            if ($type != 6) {
+            if ($type !== 6) {
                 // not hidden
                 $tConf = $hConf[$type . '.'];
 
@@ -493,20 +469,20 @@ class DirectMail
 
                 $lines = [];
 
-                $blanks = DirectMailUtility::intInRangeWrapper((int)$tConf['preBlanks'], 0, 1000);
+                $blanks = DirectMailUtility::intInRangeWrapper((int) $tConf['preBlanks'], 0, 1000);
                 if ($blanks) {
-                    $lines[] = str_pad('', $blanks-1, LF);
+                    $lines[] = str_pad('', $blanks - 1, LF);
                 }
 
-                $lines = $this->pad($lines, $tConf['preLineChar'], (int)$tConf['preLineLen']);
+                $lines = $this->pad($lines, $tConf['preLineChar'], (int) $tConf['preLineLen']);
 
-                $blanks = DirectMailUtility::intInRangeWrapper((int)$tConf['preLineBlanks'], 0, 1000);
+                $blanks = DirectMailUtility::intInRangeWrapper((int) $tConf['preLineBlanks'], 0, 1000);
                 if ($blanks) {
-                    $lines[] = str_pad('', $blanks-1, LF);
+                    $lines[] = str_pad('', $blanks - 1, LF);
                 }
 
                 if ($this->cObj->data['date']) {
-                    $lines[] = $this->getString($hConf['datePrefix']) . date($hConf['date']?$hConf['date']:'d-m-Y', $this->cObj->data['date']);
+                    $lines[] = $this->getString($hConf['datePrefix']) . date($hConf['date'] ? $hConf['date'] : 'd-m-Y', $this->cObj->data['date']);
                 }
 
                 $prefix = '';
@@ -515,10 +491,10 @@ class DirectMail
                     $str = $this->cObj->parentRecordNumber . $str;
                 }
                 if ($this->cObj->data['header_position'] === 'right') {
-                    $prefix = str_pad(' ', ($this->charWidth - strlen($str)));
+                    $prefix = str_pad(' ', $this->charWidth - strlen($str));
                 }
                 if ($this->cObj->data['header_position'] === 'center') {
-                    $prefix = str_pad(' ', floor(($this->charWidth-strlen($str))/2));
+                    $prefix = str_pad(' ', floor(($this->charWidth - strlen($str)) / 2));
                 }
                 $lines[] = $this->cObj->stdWrap($prefix . $str, $tConf['stdWrap.']);
 
@@ -526,16 +502,16 @@ class DirectMail
                     $lines[] = $this->getString($hConf['linkPrefix']) . $this->getLink($this->cObj->data['header_link']);
                 }
 
-                $blanks = DirectMailUtility::intInRangeWrapper((int)$tConf['postLineBlanks'], 0, 1000);
+                $blanks = DirectMailUtility::intInRangeWrapper((int) $tConf['postLineBlanks'], 0, 1000);
                 if ($blanks) {
-                    $lines[] = str_pad('', $blanks-1, LF);
+                    $lines[] = str_pad('', $blanks - 1, LF);
                 }
 
-                $lines = $this->pad($lines, $tConf['postLineChar'], (int)$tConf['postLineLen']);
+                $lines = $this->pad($lines, $tConf['postLineChar'], (int) $tConf['postLineLen']);
 
-                $blanks = DirectMailUtility::intInRangeWrapper((int)$tConf['postBlanks'], 0, 1000);
+                $blanks = DirectMailUtility::intInRangeWrapper((int) $tConf['postBlanks'], 0, 1000);
                 if ($blanks) {
-                    $lines[] = str_pad('', $blanks-1, LF);
+                    $lines[] = str_pad('', $blanks - 1, LF);
                 }
                 return implode(LF, $lines);
             }
@@ -547,16 +523,16 @@ class DirectMail
     /**
      * Function used to repeat a char pattern in head lines (like if you want "********" above/below a header)
      *
-     * @param	array		$lines Array of existing lines to which the new char-pattern should be added
-     * @param	string		$preLineChar The character pattern to repeat. Default is "-"
-     * @param	int		$len The length of the line. $preLineChar will be repeated to fill in this length.
-     *
-     * @return	array		The input array with a new line added.
      * @see renderHeader()
+     *
+     * @param   array       $lines Array of existing lines to which the new char-pattern should be added
+     * @param   string      $preLineChar The character pattern to repeat. Default is "-"
+     * @param   int     $len The length of the line. $preLineChar will be repeated to fill in this length.
+     * @return  array       The input array with a new line added.
      */
     public function pad(array $lines, string $preLineChar, int $len): array
     {
-        $strPad = DirectMailUtility::intInRangeWrapper((int)$len, 0, 1000);
+        $strPad = DirectMailUtility::intInRangeWrapper((int) $len, 0, 1000);
         $strPadChar = $preLineChar ?: '-';
         if ($strPad) {
             $lines[] = str_pad('', $strPad, $strPadChar);
@@ -567,10 +543,10 @@ class DirectMail
     /**
      * Function used to wrap the bodytext field content (or image caption) into lines of a max length of
      *
-     * @param	string		$str The content to break
-     *
-     * @return	string		Processed value.
      * @see main_plaintext(), breakLines()
+     *
+     * @param   string      $str The content to break
+     * @return  string      Processed value.
      */
     public function breakContent(string $str): string
     {
@@ -585,14 +561,13 @@ class DirectMail
     /**
      * Breaks content lines into a bullet list
      *
-     * @param	string		$str Content string to make into a bullet list
-     *
-     * @return	string		Processed value
+     * @param   string      $str Content string to make into a bullet list
+     * @return  string      Processed value
      */
     public function breakBulletlist(string $str): string
     {
         $type = $this->cObj->data['layout'];
-        $type = DirectMailUtility::intInRangeWrapper((int)$type, 0, 3);
+        $type = DirectMailUtility::intInRangeWrapper((int) $type, 0, 3);
 
         $tConf = $this->conf['bulletlist.'][$type . '.'];
 
@@ -608,13 +583,13 @@ class DirectMail
             $bullet = $tConf['bullet'] ? $this->getString($tConf['bullet']) : ' - ';
             $bLen = strlen($bullet);
             $bullet = substr(str_replace('#', $c, $bullet), 0, $bLen);
-            $secondRow = substr($tConf['secondRow']?$this->getString($tConf['secondRow']):str_pad('', strlen($bullet), ' '), 0, $bLen);
+            $secondRow = substr($tConf['secondRow'] ? $this->getString($tConf['secondRow']) : str_pad('', strlen($bullet), ' '), 0, $bLen);
 
-            $lines[] = $bullet . $this->breakLines($substrs, LF . $secondRow, $this->charWidth-$bLen);
+            $lines[] = $bullet . $this->breakLines($substrs, LF . $secondRow, $this->charWidth - $bLen);
 
-            $blanks = DirectMailUtility::intInRangeWrapper((int)$tConf['blanks'], 0, 1000);
+            $blanks = DirectMailUtility::intInRangeWrapper((int) $tConf['blanks'], 0, 1000);
             if ($blanks) {
-                $lines[] = str_pad('', $blanks-1, LF);
+                $lines[] = str_pad('', $blanks - 1, LF);
             }
         }
         return implode(LF, $lines);
@@ -623,16 +598,15 @@ class DirectMail
     /**
      * Formatting a table in plain text (based on the paradigm of lines being content rows and cells separated by "|")
      *
-     * @param	string		$str Content string
-     *
-     * @return	string		Processed value
+     * @param   string      $str Content string
+     * @return  string      Processed value
      */
     public function breakTable(string $str): string
     {
         $cParts = explode(LF, $str);
 
         $lines = [];
-        $cols = (int)$this->conf['cols'] ?: 0;
+        $cols = (int) $this->conf['cols'] ?: 0;
         $c = 0;
         foreach ($cParts as $substrs) {
             $c++;
@@ -643,7 +617,7 @@ class DirectMail
                 }
 
                 for ($a = 0; $a < $cols; $a++) {
-                    $jdu = explode(LF, $this->breakLines($lineParts[$a], LF, ceil($this->charWidth/$cols)));
+                    $jdu = explode(LF, $this->breakLines($lineParts[$a], LF, ceil($this->charWidth / $cols)));
                     $lines[$c][$a] = $jdu;
                 }
             }
@@ -659,7 +633,7 @@ class DirectMail
         $outLines[] = $this->addDiv($messure, '', $divChar, $joinChar, $cols);
 
         foreach ($lines as $k => $v) {
-            $top = (int)$messure[1][$k];
+            $top = (int) $messure[1][$k];
             for ($aa = 0; $aa < $top; $aa++) {
                 $tempArr = [];
                 for ($bb = 0; $bb < $cols; $bb++) {
@@ -675,14 +649,14 @@ class DirectMail
     /**
      * Subfunction for breakTable(): Adds a divider line between table rows.
      *
-     * @param	array		$messure Some information about sizes
-     * @param	string		$content Empty string.
-     * @param	string		$divChar Character to use for the divider line, typically "-"
-     * @param	string		$joinChar Join character, typically "+"
-     * @param	int			$cols Number of table columns
-     *
-     * @return	string		Divider line for the table
      * @see breakTable()
+     *
+     * @param   array       $messure Some information about sizes
+     * @param   string      $content Empty string.
+     * @param   string      $divChar Character to use for the divider line, typically "-"
+     * @param   string      $joinChar Join character, typically "+"
+     * @param   int         $cols Number of table columns
+     * @return  string      Divider line for the table
      */
     public function addDiv(
         array $messure,
@@ -690,8 +664,7 @@ class DirectMail
         string $divChar,
         string $joinChar,
         int $cols
-        ): string
-    {
+    ): string {
         $tempArr = [];
         for ($a = 0; $a < $cols; $a++) {
             $tempArr[$a] = str_pad($content, $messure[0][$a], $divChar);
@@ -702,10 +675,10 @@ class DirectMail
     /**
      * Traverses the table lines/cells and creates arrays with statistics for line numbers and lengths
      *
-     * @param	array		$tableLines Array with [table rows] [table cells] [lines in cell]
-     *
-     * @return	array		Statistics (max lines/lengths)
      * @see breakTable()
+     *
+     * @param   array       $tableLines Array with [table rows] [table cells] [lines in cell]
+     * @return  array       Statistics (max lines/lengths)
      */
     public function traverseTable(array $tableLines): array
     {
@@ -715,11 +688,11 @@ class DirectMail
         foreach ($tableLines as $k => $v) {
             foreach ($v as $kk => $vv) {
                 foreach ($vv as $lv) {
-                    if (strlen($lv) > (int)$maxLen[$kk]) {
+                    if (strlen($lv) > (int) $maxLen[$kk]) {
                         $maxLen[$kk] = strlen($lv);
                     }
                 }
-                if (count($vv) > (int)$maxLines[$k]) {
+                if (count($vv) > (int) $maxLines[$k]) {
                     $maxLines[$k] = count($vv);
                 }
             }
@@ -730,10 +703,11 @@ class DirectMail
     /**
      * Render block of images - which means creating lines with links to the images.
      *
-     * @param   array   $imagesArray The image array*
-     * @param   string  $fieldname
-     * @return  string  Content
      * @see getImages()
+     *
+     * @param   array   $imagesArray The image array*
+     *
+     * @return  string  Content
      */
     public function renderImages(array $imagesArray, string $fieldname): string
     {
@@ -772,9 +746,8 @@ class DirectMail
     /**
      * Returns a typolink URL based on input.
      *
-     * @param	string		$link Parameter to typolink
-     *
-     * @return	string		The URL returned from $this->cObj->getTypoLink_URL(); - possibly it prefixed with the URL of the site if not present already
+     * @param   string      $link Parameter to typolink
+     * @return  string      The URL returned from $this->cObj->getTypoLink_URL(); - possibly it prefixed with the URL of the site if not present already
      */
     public function getLink(string $link): string
     {
@@ -782,7 +755,7 @@ class DirectMail
             'parameter' => $link,
             'forceAbsoluteUrl' => '1',
             'forceAbsoluteUrl.' => [
-                'scheme' => GeneralUtility::getIndpEnv('TYPO3_SSL')?'https':'http',
+                'scheme' => GeneralUtility::getIndpEnv('TYPO3_SSL') ? 'https' : 'http',
             ],
         ]);
     }
@@ -790,12 +763,12 @@ class DirectMail
     /**
      * Breaking lines into fixed length lines, using MailUtility::breakLinesForEmail()
      *
-     * @param	string		$str The string to break
-     * @param	string		$implChar Line break character
-     * @param	int			$charWidth Length of lines, default is $this->charWidth
-     *
-     * @return	string		Processed string
      * @see MailUtility::breakLinesForEmail()
+     *
+     * @param   string      $str The string to break
+     * @param   string      $implChar Line break character
+     * @param   int         $charWidth Length of lines, default is $this->charWidth
+     * @return  string      Processed string
      */
     public function breakLines(string $str, string $implChar, int $charWidth = 0): string
     {
@@ -809,9 +782,8 @@ class DirectMail
      * Explodes a string with "|" and if the second part is found it will return this, otherwise the first part.
      * Used for many TypoScript properties used in this class since they need preceeding whitespace to be preserved.
      *
-     * @param	string		$str Input string
-     *
-     * @return	string		Output string
+     * @param   string      $str Input string
+     * @return  string      Output string
      */
     public function getString(string $str): string
     {
@@ -822,16 +794,15 @@ class DirectMail
     /**
      * Calls a user function for processing of data
      *
-     * @param	string		$mConfKey TypoScript property name, pointing to the definition of the user function to call (from the TypoScript array internally in this class). This array is passed to the user function. Notice that "parentObj" property is a reference to this class ($this)
-     * @param	mixed		$passVar Variable to process
-     *
-     * @return	mixed		The processed $passVar as returned by the function call
+     * @param   string      $mConfKey TypoScript property name, pointing to the definition of the user function to call (from the TypoScript array internally in this class). This array is passed to the user function. Notice that "parentObj" property is a reference to this class ($this)
+     * @param   mixed       $passVar Variable to process
+     * @return  mixed       The processed $passVar as returned by the function call
      */
     public function userProcess(string $mConfKey, $passVar)
     {
         if ($this->conf[$mConfKey]) {
             $funcConf = $this->conf[$mConfKey . '.'];
-            $funcConf['parentObj']=&$this;
+            $funcConf['parentObj'] = &$this;
             $passVar = $GLOBALS['TSFE']->cObj->callUserFunction(
                 $this->conf[$mConfKey],
                 $funcConf,
@@ -845,11 +816,11 @@ class DirectMail
      * Function used by TypoScript "parseFunc" to process links in the bodytext.
      * Extracts the link and shows it in plain text in a parathesis next to the link text. If link was relative the site URL was prepended.
      *
-     * @param	string		$content Empty, ignore.
-     * @param	array		$conf TypoScript parameters
-     *
-     * @return	string		Processed output.
      * @see parseBody()
+     *
+     * @param   string      $content Empty, ignore.
+     * @param   array       $conf TypoScript parameters
+     * @return  string      Processed output.
      */
     public function atagToHttp(string $content, array $conf): string
     {
@@ -870,10 +841,9 @@ class DirectMail
     /**
      * User function (called from TypoScript) for generating a bullet list (used in parsefunc)
      *
-     * @param	string		$content Empty, ignore.
-     * @param	array		$conf TypoScript parameters
-     *
-     * @return	string		Processed output.
+     * @param   string      $content Empty, ignore.
+     * @param   array       $conf TypoScript parameters
+     * @return  string      Processed output.
      */
     public function typolist(string $content, array $conf): string
     {
@@ -887,10 +857,9 @@ class DirectMail
     /**
      * User function (called from TypoScript) for generating a typo header tag (used in parsefunc)
      *
-     * @param	string		$content Empty, ignore.
-     * @param	array		$conf TypoScript parameters
-     *
-     * @return	string		Processed output.
+     * @param   string      $content Empty, ignore.
+     * @param   array       $conf TypoScript parameters
+     * @return  string      Processed output.
      */
     public function typohead(string $content, array $conf): string
     {
@@ -908,10 +877,9 @@ class DirectMail
     /**
      * User function (called from TypoScript) for generating a code listing (used in parsefunc)
      *
-     * @param	string		$content Empty, ignore.
-     * @param	array		$conf TypoScript parameters
-     *
-     * @return	string		Processed output.
+     * @param   string      $content Empty, ignore.
+     * @param   array       $conf TypoScript parameters
+     * @return  string      Processed output.
      */
     public function typocode(string $content, array $conf): string
     {
@@ -924,15 +892,14 @@ class DirectMail
     /**
      * Adds language-dependent label markers
      *
-     * @param	array		$markerArray the input marker array
-     *
-     * @return	array		the output marker array
+     * @param   array       $markerArray the input marker array
+     * @return  array       the output marker array
      */
     public function addLabelsMarkers(array $markerArray): array
     {
         $labels = GeneralUtility::trimExplode(',', $this->labelsList);
         foreach ($labels as $labelName) {
-            $markerArray['###' . strtoupper($labelName) . '###'] = (string)LocalizationUtility::translate($labelName, 'DirectMail');
+            $markerArray['###' . strtoupper($labelName) . '###'] = (string) LocalizationUtility::translate($labelName, 'DirectMail');
         }
         return $markerArray;
     }
