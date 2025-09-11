@@ -613,20 +613,21 @@ class SysDmailMaillogRepository extends MainRepository
         return (int)$existingLog > 0;
     }
 
-    public function updateSysDmailMaillogForShipOfMail(array $values)
+    public function updateSysDmailMaillogForShipOfMail(int $logUid, int $htmlSent, int $parseTime, int $size, int $failedSendingAttempts)
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
 
         return $queryBuilder
             ->update($this->table)
             ->set('tstamp', time())
-            ->set('size', (int)$values['size'])
-            ->set('parsetime', (int)$values['parsetime'])
-            ->set('html_sent', (int)$values['html_sent'])
+            ->set('size', $size)
+            ->set('parsetime', $parseTime)
+            ->set('html_sent', $htmlSent)
+            ->set('failed_sending_attempts', $failedSendingAttempts)
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $queryBuilder->createNamedParameter($values['logUid'], Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($logUid, \PDO::PARAM_INT)
                 )
             )
             ->executeStatement();
