@@ -691,10 +691,12 @@ final class DmailController extends MainController
                     'returnUrl' => $this->requestUri,
                 ];
 
+                $title = isset($row['issue_date']) ? date('d.m.Y', $row['issue_date']) . ' - ' . $row['title'] : $row['title'];
+
                 $data[] = [
                     'id' => $row['uid'],
                     'pageIcon' => $this->iconFactory->getIconForRecord('pages', $row, IconSize::SMALL),
-                    'title' => htmlspecialchars($row['title']),
+                    'title' => htmlspecialchars($title),
                     'createDmailLink' => $createDmailLink,
                     'createLink' => $createLink,
                     'editOnClickLink' => $this->getEditOnClickLink($params),
