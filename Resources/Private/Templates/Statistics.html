@@ -519,11 +519,53 @@
             <td>&nbsp;</td>
         </tr>
         <tr class="db_list_normal">
-            <td><f:translate key="{lll}view_recipient_total_sent" /></td>
-            <td>{row.totalRecip} / {row.sentRecip}</td>
+            <td><f:translate key="{lll}view_recipient_total" /></td>
+            <td>{row.totalRecip}</td>
             <td>&nbsp;</td>
         </tr>
+        <tr class="db_list_normal">
+            <td>
+                <f:translate key="{lll}view_recipient_total_processed" />
+                <f:if condition="{row.sentRecip} < {row.totalRecip}"> *</f:if>
+            </td>
+            <td>{row.totalProc}</td>
+            <td>&nbsp;</td>
+        </tr>
+        .totalRecip}</td>
+        <td>&nbsp;</td>
+        </tr>
+        <tr class="db_list_normal">
+            <td>
+                <f:translate key="{lll}view_recipient_total_processed" />
+                <f:if condition="{row.sentRecip} < {row.totalRecip}"> *</f:if>
+            </td>
+            <td>{row.totalProc}</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr class="db_list_normal">
+            <td>
+                <f:translate key="{lll}view_recipient_total_sent" />
+                <f:if condition="{row.sentRecip} < {row.totalRecip}"> *</f:if>
+            </td>
+            <td>{row.sentRecip}</td>
+            <td>&nbsp;</td>
+        </tr>
+        <f:if condition="{row.totalUnsent.counter}">
+            <tr class="db_list_normal">
+                <td><f:translate key="{lll}view_recipient_total_unprocessed" />:</td>
+                <td>{row.totalUnsent.counter}</td>
+                <td>&nbsp;</td>
+            </tr>
+        </f:if>
     </table>
+    <f:if condition="{row.sentRecip} < {row.totalRecip}">
+        <p>
+            * Differenz entsteht durch doppelt/mehrfach eingetragene oder leere Mailadressen.
+            <f:if condition="{row.totalUnsent.counter}">
+                Siehe {row.totalUnsent.counter} nicht gezählte Mails (siehe Liste)
+            </f:if>
+        </p>
+    </f:if>
     <div style="padding-top: 5px;"></div>
 </f:section>
 

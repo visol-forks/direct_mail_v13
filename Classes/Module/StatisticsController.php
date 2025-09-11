@@ -514,6 +514,7 @@ final class StatisticsController extends MainController
         $uniqueHtmlResponses = $mailResponsesGeneral['uniqueHtmlResponses'];
         $uniquePlainResponses = $mailResponsesGeneral['uniquePlainResponses'];
         $totalSent = $mailResponsesGeneral['totalSent'];
+        $totalProcessed = $mailResponsesGeneral['totalSent'];
         $htmlSent = $mailResponsesGeneral['htmlSent'];
         $plainSent =  $mailResponsesGeneral['plainSent'];
         $table = $mailResponsesGeneral['db'];
@@ -1296,11 +1297,11 @@ final class StatisticsController extends MainController
                 'table.head.mid',
                 'table.head.rid',
                 'table.head.html_sent',
-                'table.head.timestamp',
                 'table.head.parsetime',
+                'table.head.timestamp',
+                'table.head.attempts',
                 'table.head.receiptList',
                 'table.head.details',
-                'table.head.response',
             ],
             'counter' => 0,
             'body' => []
@@ -1343,8 +1344,9 @@ final class StatisticsController extends MainController
                     $row['rid'],
                     $row['html_sent'],
                     $row['failed_sending_attempts'],
-                    BackendUtility::datetime($row['tstamp']),
                     $row['parsetime'],
+                    BackendUtility::datetime($row['tstamp']),
+                    $row['failed_sending_attempts'],
                     $listType,
                     $details
                 ];
@@ -1540,6 +1542,10 @@ final class StatisticsController extends MainController
 
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->selectSysDmailMaillogsCompactView($row['uid']);
 
+        $countUnsent = (int) $this->getTable7($row);
+        $countProcessed = count($res);
+        $countSent = $countProcessed - $countUnsent;
+
         $data = [
             'icon'          => $this->iconFactory->getIconForRecord('sys_dmail', $row, IconSize::SMALL)->render(),
             'iconInfo'      => $this->iconFactory->getIcon('actions-document-info', IconSize::SMALL)->render(),
@@ -1556,7 +1562,9 @@ final class StatisticsController extends MainController
             'delBegin'      => $row['scheduled_begin'] ? BackendUtility::datetime($row['scheduled_begin']) : '-',
             'delEnd'        => $row['scheduled_end'] ? BackendUtility::datetime($row['scheduled_end']) : '-',
             'totalRecip'    => $this->countTotalRecipientFromQueryInfo($row['query_info']),
-            'sentRecip'     => count($res),
+            'totalProc'     => count($res),
+            'totalUnsent'   => $this->getTable7($row),
+            'sentRecip'     => $countSent,
         ];
         return $data;
     }
