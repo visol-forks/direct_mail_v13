@@ -205,6 +205,29 @@ class SysDmailRepository extends MainRepository
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                 )
             )
+        )->orWhere(
+                $queryBuilder->expr()->eq(
+                    $this->table . '.pid',
+                    $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->in(
+                    $this->table . '.type',
+                    $queryBuilder->createNamedParameter([0, 1], Connection::PARAM_INT_ARRAY)
+                ),
+                $queryBuilder->expr()->eq(
+                    $this->table . '.issent',
+                    $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    $this->tableSysDmailMaillog . '.response_type',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $queryBuilder->or(
+                    $queryBuilder->expr()->gt(
+                        $this->tableSysDmailMaillog . '.failed_sending_attempts',
+                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                    )
+                )
         )
         ->groupBy($this->tableSysDmailMaillog . '.mid')
         ->orderBy($this->table . '.scheduled', 'DESC')
