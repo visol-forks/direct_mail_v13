@@ -2,6 +2,12 @@
 
 namespace DirectMailTeam\DirectMail\Scheduler;
 
+use DirectMailTeam\DirectMail\Dmailer;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Scheduler\Task\AbstractTask;
+
+use const E_USER_DEPRECATED;
+
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,22 +21,16 @@ namespace DirectMailTeam\DirectMail\Scheduler;
  * The TYPO3 project - inspiring people to share!
  */
 
-use DirectMailTeam\DirectMail\Dmailer;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-
 /**
-* Class tx_directmail_scheduler
-*
-* @author	Ivan Kartolo <ivan.kartolo@dkd.de>
-* @deprecated will be removed in TYPO3 v12.0. Use DirectmailCommand instead.
-*/
-class DirectmailScheduler extends \TYPO3\CMS\Scheduler\Task\AbstractTask
+ * @deprecated will be removed in TYPO3 v12.0. Use DirectmailCommand instead.
+ */
+class DirectmailScheduler extends AbstractTask
 {
     /**
      * Function executed from scheduler.
      * Send the newsletter
      *
-     * @return	bool
+     * @return  bool
      */
     public function execute()
     {
@@ -38,7 +38,7 @@ class DirectmailScheduler extends \TYPO3\CMS\Scheduler\Task\AbstractTask
             'will be removed in TYPO3 v12.0. Use DirectmailCommand instead.',
             E_USER_DEPRECATED
         );
-        /* @var $htmlmail \DirectMailTeam\DirectMail\Dmailer */
+        /** @var Dmailer $htmlmail */
         $htmlmail = GeneralUtility::makeInstance(Dmailer::class);
         $htmlmail->start();
         $htmlmail->runcron();

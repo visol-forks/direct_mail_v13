@@ -18,7 +18,6 @@ class FeGroupsRepository extends MainRepository
      * Return all uid's from 'fe_groups' for a static direct mail group.
      *
      * @param int $uid The uid of the direct_mail group
-     *
      * @return array The resulting array of uid's
      */
     public function getStaticIdList(int $uid): array
@@ -116,7 +115,7 @@ class FeGroupsRepository extends MainRepository
                     $queryBuilder->quoteIdentifier($this->tableSysDmailGroupMm . '.uid_foreign')
                 ),
                 $queryBuilder->expr()->eq(
-                    $this->tableSysDmailGroupMm. '.tablenames',
+                    $this->tableSysDmailGroupMm . '.tablenames',
                     $queryBuilder->createNamedParameter($this->table)
                 )
             )
@@ -134,7 +133,7 @@ class FeGroupsRepository extends MainRepository
         if (!empty($subgroups)) {
             $usergroupInList = null;
             foreach ($subgroups as $subgroup) {
-                $usergroupInList .= (($usergroupInList == null) ? null : ' OR') . ' INSTR( CONCAT(\',\',' . $this->tableFeUsers . '.usergroup,\',\'),CONCAT(\',' . (int)$subgroup . ',\') )';
+                $usergroupInList .= ($usergroupInList === null ? null : ' OR') . ' INSTR( CONCAT(\',\',' . $this->tableFeUsers . '.usergroup,\',\'),CONCAT(\',' . (int) $subgroup . ',\') )';
             }
             $usergroupInList = '(' . $usergroupInList . ')';
 
@@ -180,7 +179,6 @@ class FeGroupsRepository extends MainRepository
      * Get all subsgroups recursively.
      *
      * @param int $groupId Parent fe usergroup
-     *
      * @return array The all id of fe_groups
      */
     public function getFEgroupSubgroups(int $groupId): array
@@ -189,7 +187,7 @@ class FeGroupsRepository extends MainRepository
         // fe_groups having this id in their subgroup field
         $queryBuilder = $this->getQueryBuilder($this->table);
 
-        $queryBuilder->selectLiteral('DISTINCT ' . $this->table. '.uid')
+        $queryBuilder->selectLiteral('DISTINCT ' . $this->table . '.uid')
         ->from($this->table, $this->table)
         ->join(
             $this->table,
@@ -234,16 +232,15 @@ class FeGroupsRepository extends MainRepository
      * @param array $pidArray The pidArray
      * @param int $groupUid The groupUid.
      * @param int $cat The number of relations from sys_dmail_group to sysmail_categories
-     *
-     * @return	array The resulting array of uid's
+     * @return  array The resulting array of uid's
      */
     public function getIdList(array $pidArray, int $groupUid, int $cat): array
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
 
         // fe user group uid should be in list of fe users list of user groups
-        //		$field = $this->tableFeUsers.'.usergroup';
-        //		$command = $this->table.'.uid';
+        //      $field = $this->tableFeUsers.'.usergroup';
+        //      $command = $this->table.'.uid';
         // This approach, using standard SQL, does not work,
         // even when fe_users.usergroup is defined as varchar(255) instead of tinyblob
         // $usergroupInList = ' AND ('.$field.' LIKE \'%,\'||'.$command.'||\',%\' OR '.$field.' LIKE '.$command.'||\',%\' OR '.$field.' LIKE \'%,\'||'.$command.' OR '.$field.'='.$command.')';

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DirectMailTeam\DirectMail\Utility;
 
 use DirectMailTeam\DirectMail\Utility\Typo3ConfVarsUtility;
+use Exception;
 use GuzzleHttp\Psr7\Response;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\RequestFactory;
@@ -49,10 +50,10 @@ class FetchUtility
 
     public function getContents(string $url): string
     {
-        try  {
+        try {
             $respose = $this->getResponse($url);
-            return (string)$respose->getBody()->getContents();
-        } catch(\Exception $e) {
+            return (string) $respose->getBody()->getContents();
+        } catch (Exception $e) {
         }
         return '';
     }

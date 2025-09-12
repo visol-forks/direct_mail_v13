@@ -4,6 +4,40 @@ declare(strict_types=1);
 
 namespace DirectMailTeam\DirectMail\Module;
 
+use DirectMailTeam\DirectMail\Event\ImporterOutputEvent;
+use DirectMailTeam\DirectMail\Repository\PagesRepository;
+use DirectMailTeam\DirectMail\Repository\SysDmailCategoryRepository;
+use DirectMailTeam\DirectMail\Repository\SysDmailTtAddressCategoryMmRepository;
+use DirectMailTeam\DirectMail\Repository\TtAddressRepository;
+use Exception;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Charset\CharsetConverter;
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
+use TYPO3\CMS\Core\Resource\DefaultUploadFolderResolver;
+use TYPO3\CMS\Core\Resource\Enum\DuplicationBehavior;
+use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\SysLog\Type as SystemLogType;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\File\ExtendedFileUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+use const PHP_EOL;
+
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -17,39 +51,8 @@ namespace DirectMailTeam\DirectMail\Module;
  * The TYPO3 project - inspiring people to share!
  */
 
-use DirectMailTeam\DirectMail\Event\ImporterOutputEvent;
-use DirectMailTeam\DirectMail\Repository\PagesRepository;
-use DirectMailTeam\DirectMail\Repository\SysDmailCategoryRepository;
-use DirectMailTeam\DirectMail\Repository\SysDmailTtAddressCategoryMmRepository;
-use DirectMailTeam\DirectMail\Repository\TtAddressRepository;
-use Psr\EventDispatcher\EventDispatcherInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Backend\Template\ModuleTemplate;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Charset\CharsetConverter;
-use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Localization\LanguageService;
-use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
-use TYPO3\CMS\Core\Resource\DefaultUploadFolderResolver;
-use TYPO3\CMS\Core\Resource\Enum\DuplicationBehavior;
-use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Resource\ResourceFactory;
-use TYPO3\CMS\Core\SysLog\Type as SystemLogType;
-use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Type\Bitmask\Permission;
-use TYPO3\CMS\Core\Utility\ArrayUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Utility\File\ExtendedFileUtility;
-
 /**
  * Recipient list module for tx_directmail extension
- *
- * @author		Ivan-Dharma Kartolo	<ivan.kartolo@dkd.de>
  */
 final class ImporterController extends MainController
 {
@@ -58,16 +61,12 @@ final class ImporterController extends MainController
     public function __construct(
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly EventDispatcherInterface $eventDispatcher,
-
         protected readonly string $moduleName = 'directmail_module_importer',
         protected readonly string $lllFile = 'LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf',
-
         protected ?LanguageService $languageService = null,
         protected ?ServerRequestInterface $request = null,
         protected ?BackendUserAuthentication $beUser = null,
-
         protected array $queryParams = [],
-
         protected string $httpReferer = '',
         protected string $requestHostOnly = '',
         protected array $importStep = [],
@@ -86,7 +85,7 @@ final class ImporterController extends MainController
         $this->queryParams = $request->getQueryParams();
         $parsedBody = $request->getParsedBody();
 
-        $this->id = (int)($parsedBody['id'] ?? $this->queryParams['id'] ?? 0);
+        $this->id = (int) ($parsedBody['id'] ?? $this->queryParams['id'] ?? 0);
         $permsClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
         $pageAccess = BackendUtility::readPageAccess($this->id, $permsClause);
         $this->pageinfo = is_array($pageAccess) ? $pageAccess : [];
@@ -112,12 +111,11 @@ final class ImporterController extends MainController
     public function indexAction(ModuleTemplate $view): ResponseInterface
     {
         if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
-
             $module = $this->getModulName();
 
-            if ($module == 'dmail') {
+            if ($module === 'dmail') {
                 // Direct mail module
-                if (($this->pageinfo['doktype'] ?? 0) == 254) {
+                if (($this->pageinfo['doktype'] ?? 0) === 254) {
                     $data = $this->moduleContent();
                     $view->assignMultiple(
                         [
@@ -125,7 +123,7 @@ final class ImporterController extends MainController
                             'show' => true,
                         ]
                     );
-                } elseif ($this->id != 0) {
+                } elseif ($this->id !== 0) {
                     $message = $this->createFlashMessage(
                         $this->languageService->sL($this->lllFile . ':dmail_noRegular'),
                         $this->languageService->sL($this->lllFile . ':dmail_newsletters'),
@@ -165,7 +163,7 @@ final class ImporterController extends MainController
     /**
      * Import CSV-Data in step-by-step mode
      *
-     * @return	array		HTML form
+     * @return  array       HTML form
      */
     protected function moduleContent(): array
     {
@@ -252,7 +250,7 @@ final class ImporterController extends MainController
         ];
 
         if (!empty($this->csvImport)) {
-            $this->indata = ($step['next'] === 'mapping') ? ($this->csvImport + $defaultConf) : $this->csvImport;
+            $this->indata = $step['next'] === 'mapping' ? $this->csvImport + $defaultConf : $this->csvImport;
         }
 
         if (empty($this->indata)) {
@@ -287,7 +285,7 @@ final class ImporterController extends MainController
             $tempFile = $this->writeTempFile(
                 $this->indata['csv'] ?? '',
                 $this->indata['newFile'] ?? '',
-                (int)($this->indata['newFileUid'] ?? 0)
+                (int) ($this->indata['newFileUid'] ?? 0)
             );
             $this->indata['newFile'] = $tempFile['newFile'];
             $this->indata['newFileUid'] = $tempFile['newFileUid'];
@@ -352,10 +350,10 @@ final class ImporterController extends MainController
                 // TODO: make it variable?
                 $optUnique = [
                     ['val' => 'email', 'text' => 'email'],
-                    ['val' =>'name', 'text' => 'name'],
+                    ['val' => 'name', 'text' => 'name'],
                 ];
 
-                $output['conf']['disableInput'] = ($this->params['inputDisable'] ?? 0) == 1 ? true : false;
+                $output['conf']['disableInput'] = ($this->params['inputDisable'] ?? 0) === 1 ? true : false;
 
                 // show configuration
                 $output['subtitle'] = $this->languageService->sL($this->lllFile . ':mailgroup_import_header_conf');
@@ -457,16 +455,16 @@ final class ImporterController extends MainController
                 array_unshift($mapFields, ['noMap', $this->languageService->sL($this->lllFile . ':mailgroup_import_mapping_mapTo')]);
                 $mapFields[] = [
                     'cats',
-                    $this->languageService->sL($this->lllFile . ':mailgroup_import_mapping_categories')
+                    $this->languageService->sL($this->lllFile . ':mailgroup_import_mapping_categories'),
                 ];
                 reset($csv_firstRow);
                 reset($csvData);
 
                 $output['mapping']['fields'] = $mapFields;
-                for ($i = 0; $i < (count($csv_firstRow)); $i++) {
+                for ($i = 0; $i < count($csv_firstRow); $i++) {
                     // example CSV
                     $exampleLines = [];
-                    for ($j = 0; $j < (count($csvData)); $j++) {
+                    for ($j = 0; $j < count($csvData); $j++) {
                         $exampleLines[] = $csvData[$j][$i];
                     }
                     $output['mapping']['table'][] = [
@@ -480,7 +478,7 @@ final class ImporterController extends MainController
                 // get categories
                 $temp['value'] = BackendUtility::getPagesTSconfig($this->getId())['TCEFORM.']['sys_dmail_group.']['select_categories.']['PAGE_TSCONFIG_IDLIST'] ?? null;
                 if (is_numeric($temp['value'])) {
-                    $rowCat = GeneralUtility::makeInstance(SysDmailCategoryRepository::class)->selectSysDmailCategoryByPid((int)$temp['value']);
+                    $rowCat = GeneralUtility::makeInstance(SysDmailCategoryRepository::class)->selectSysDmailCategoryByPid((int) $temp['value']);
                     if (!empty($rowCat)) {
                         // additional options
                         if ($output['mapping']['update_unique']) {
@@ -492,7 +490,7 @@ final class ImporterController extends MainController
                                 'cat' => htmlspecialchars($v['category']),
                                 'k' => $k,
                                 'vUid' => $v['uid'],
-                                'checked' => $this->indata['cat'][$k] != $v['uid'] ? false : true,
+                                'checked' => $this->indata['cat'][$k] !== $v['uid'] ? false : true,
                             ];
                         }
                     }
@@ -514,7 +512,7 @@ final class ImporterController extends MainController
                 $output['startImport']['update_unique'] = $this->indata['update_unique'];
                 $output['startImport']['record_unique'] = $this->indata['record_unique'];
                 $output['startImport']['all_html'] = !($this->indata['all_html'] ?? false) ? false : true;
-                $output['startImport']['add_cat'] = ($this->indata['add_cat'] ?? false) ? true : false;
+                $output['startImport']['add_cat'] = $this->indata['add_cat'] ?? false ? true : false;
 
                 $output['startImport']['error'] = $error;
 
@@ -561,7 +559,7 @@ final class ImporterController extends MainController
                     foreach ($this->indata['map'] as $fieldNr => $fieldMapped) {
                         $output['startImport']['hiddenMap'][] = [
                             'name' => htmlspecialchars('CSV_IMPORT[map][' . $fieldNr . ']'),
-                            'value' => htmlspecialchars($fieldMapped)
+                            'value' => htmlspecialchars($fieldMapped),
                         ];
                     }
                 }
@@ -569,7 +567,7 @@ final class ImporterController extends MainController
                     foreach ($this->indata['cat'] as $k => $catUid) {
                         $output['startImport']['hiddenCat'][] = [
                             'name' => htmlspecialchars('CSV_IMPORT[cat][' . $k . ']'),
-                            'value' => htmlspecialchars($catUid)
+                            'value' => htmlspecialchars($catUid),
                         ];
                     }
                 }
@@ -582,7 +580,7 @@ final class ImporterController extends MainController
 
                 if (($this->indata['mode'] ?? '') === 'file') {
                     $output['upload']['current'] = true;
-                    $file = $this->getFileById((int)$this->indata['newFileUid']);
+                    $file = $this->getFileById((int) $this->indata['newFileUid']);
                     if (is_object($file)) {
                         $output['upload']['fileInfo'] = [
                             'name' => $file->getName(),
@@ -603,8 +601,8 @@ final class ImporterController extends MainController
 
          /** @var ImporterOutputEvent $event */
          $event = $this->eventDispatcher->dispatch(
-            new ImporterOutputEvent($output)
-        );
+             new ImporterOutputEvent($output)
+         );
         $output = $event->getOutput();
 
         return ['output' => $output];
@@ -618,7 +616,6 @@ final class ImporterController extends MainController
      * Filter doublette from input csv data
      *
      * @param array $mappedCsv Mapped csv
-     *
      * @return array Filtered csv and double csv
      */
     public function filterCSV(array $mappedCsv): array
@@ -631,9 +628,9 @@ final class ImporterController extends MainController
         foreach ($mappedCsv as $k => $csvData) {
             if (!in_array($k, $remove)) {
                 $found = 0;
-                foreach ($cmpCsv as $kk =>$cmpData) {
-                    if ($k != $kk) {
-                        if ($csvData[$this->indata['record_unique']] == $cmpData[$this->indata['record_unique']]) {
+                foreach ($cmpCsv as $kk => $cmpData) {
+                    if ($k !== $kk) {
+                        if ($csvData[$this->indata['record_unique']] === $cmpData[$this->indata['record_unique']]) {
                             $double[] = $mappedCsv[$kk];
                             if (!$found) {
                                 $filtered[] = $csvData;
@@ -658,7 +655,6 @@ final class ImporterController extends MainController
      * Start importing users
      *
      * @param array $csvData The csv raw data
-     *
      * @return array Array containing doublette, updated and invalid-email records
      */
     public function doImport(array $csvData): array
@@ -668,7 +664,7 @@ final class ImporterController extends MainController
 
         //empty table if flag is set
         if ($this->indata['remove_existing']) {
-            GeneralUtility::makeInstance(TtAddressRepository::class)->deleteRowsByPid((int)$this->indata['storage']);
+            GeneralUtility::makeInstance(TtAddressRepository::class)->deleteRowsByPid((int) $this->indata['storage']);
         }
 
         $mappedCSV = [];
@@ -714,7 +710,7 @@ final class ImporterController extends MainController
             $userID = [];
 
             $rows = GeneralUtility::makeInstance(TtAddressRepository::class)->selectTtAddressByPid(
-                (int)$this->indata['storage'],
+                (int) $this->indata['storage'],
                 $this->indata['record_unique']
             );
 
@@ -730,15 +726,15 @@ final class ImporterController extends MainController
             foreach ($mappedCSV as $dataArray) {
                 $foundUser = array_keys($user, $dataArray[$this->indata['record_unique']]);
                 if (is_array($foundUser) && !empty($foundUser)) {
-                    if (count($foundUser) == 1) {
-                        $data['tt_address'][$userID[$foundUser[0]]] =  $dataArray;
+                    if (count($foundUser) === 1) {
+                        $data['tt_address'][$userID[$foundUser[0]]] = $dataArray;
                         $data['tt_address'][$userID[$foundUser[0]]]['pid'] = $this->indata['storage'];
                         if ($this->indata['all_html']) {
                             $data['tt_address'][$userID[$foundUser[0]]]['module_sys_dmail_html'] = $this->indata['all_html'];
                         }
                         if (is_array($this->indata['cat'] ?? false) && !in_array('cats', $this->indata['map'])) {
                             if ($this->indata['add_cat']) {
-                                $rows = GeneralUtility::makeInstance(SysDmailTtAddressCategoryMmRepository::class)->selectUidsByUidLocal((int)$userID[$foundUser[0]]);
+                                $rows = GeneralUtility::makeInstance(SysDmailTtAddressCategoryMmRepository::class)->selectUidsByUidLocal((int) $userID[$foundUser[0]]);
                                 if (is_array($rows)) {
                                     foreach ($rows as $row) {
                                         $data['tt_address'][$userID[$foundUser[0]]]['module_sys_dmail_category'][] = $row['uid_foreign'];
@@ -781,7 +777,7 @@ final class ImporterController extends MainController
         $resultImport['double'] = is_array($filteredCSV['double'] ?? false) ? $filteredCSV['double'] : [];
 
         // start importing
-        /* @var $dataHandler DataHandler */
+        /** @var DataHandler $dataHandler */
         $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
         //$dataHandler->enableLogging = 0;
         $dataHandler->start($data, []);
@@ -840,26 +836,26 @@ final class ImporterController extends MainController
      * Read in the given CSV file. The function is used during the final file import.
      * Removes first the first data row if the CSV has fieldnames.
      *
-     * @return	array		file content in array
+     * @return  array       file content in array
      */
     public function readCSV(): array
     {
         $mydata = [];
 
-        if ((int)$this->indata['newFileUid'] < 1) {
+        if ((int) $this->indata['newFileUid'] < 1) {
             return $mydata;
         }
 
-        $fileAbsolutePath = $this->getFileAbsolutePath((int)$this->indata['newFileUid']);
+        $fileAbsolutePath = $this->getFileAbsolutePath((int) $this->indata['newFileUid']);
 
         $delimiter = $this->indata['delimiter'] ?: 'comma';
         $encaps = $this->indata['encapsulation'] ?: 'doubleQuote';
-        $delimiter = ($delimiter === 'comma') ? ',' : $delimiter;
-        $delimiter = ($delimiter === 'semicolon') ? ';' : $delimiter;
-        $delimiter = ($delimiter === 'colon') ? ':' : $delimiter;
-        $delimiter = ($delimiter === 'tab') ? "\t" : $delimiter;
-        $encaps = ($encaps === 'singleQuote') ? "'" : $encaps;
-        $encaps = ($encaps === 'doubleQuote') ? '"' : $encaps;
+        $delimiter = $delimiter === 'comma' ? ',' : $delimiter;
+        $delimiter = $delimiter === 'semicolon' ? ';' : $delimiter;
+        $delimiter = $delimiter === 'colon' ? ':' : $delimiter;
+        $delimiter = $delimiter === 'tab' ? "\t" : $delimiter;
+        $encaps = $encaps === 'singleQuote' ? "'" : $encaps;
+        $encaps = $encaps === 'doubleQuote' ? '"' : $encaps;
 
         $handle = fopen($fileAbsolutePath, 'r');
         if ($handle === false) {
@@ -868,7 +864,7 @@ final class ImporterController extends MainController
 
         while (($data = fgetcsv($handle, 10000, $delimiter, $encaps)) !== false) {
             // remove empty line in csv
-            if ((count($data) >= 1)) {
+            if (count($data) >= 1) {
                 $mydata[] = $data;
             }
         }
@@ -882,38 +878,37 @@ final class ImporterController extends MainController
      * Read in the given CSV file. Only showed a couple of the CSV values as example
      * Removes first the first data row if the CSV has fieldnames.
      *
-     * @param	int $records Number of example values
-     *
-     * @return	array File content in array
+     * @param   int $records Number of example values
+     * @return  array File content in array
      */
     public function readExampleCSV(int $records = 3): array
     {
         $mydata = [];
 
-        if ((int)$this->indata['newFileUid'] < 1) {
+        if ((int) $this->indata['newFileUid'] < 1) {
             return $mydata;
         }
 
-        $fileAbsolutePath = $this->getFileAbsolutePath((int)$this->indata['newFileUid']);
+        $fileAbsolutePath = $this->getFileAbsolutePath((int) $this->indata['newFileUid']);
 
         $i = 0;
         $delimiter = $this->indata['delimiter'] ?: 'comma';
         $encaps = $this->indata['encapsulation'] ?: 'doubleQuote';
-        $delimiter = ($delimiter === 'comma') ? ',' : $delimiter;
-        $delimiter = ($delimiter === 'semicolon') ? ';' : $delimiter;
-        $delimiter = ($delimiter === 'colon') ? ':' : $delimiter;
-        $delimiter = ($delimiter === 'tab') ? "\t" : $delimiter;
-        $encaps = ($encaps === 'singleQuote') ? "'" : $encaps;
-        $encaps = ($encaps === 'doubleQuote') ? '"' : $encaps;
+        $delimiter = $delimiter === 'comma' ? ',' : $delimiter;
+        $delimiter = $delimiter === 'semicolon' ? ';' : $delimiter;
+        $delimiter = $delimiter === 'colon' ? ':' : $delimiter;
+        $delimiter = $delimiter === 'tab' ? "\t" : $delimiter;
+        $encaps = $encaps === 'singleQuote' ? "'" : $encaps;
+        $encaps = $encaps === 'doubleQuote' ? '"' : $encaps;
 
         $handle = fopen($fileAbsolutePath, 'r');
         if ($handle === false) {
             return $mydata;
         }
 
-        while ((($data = fgetcsv($handle, 10000, $delimiter, $encaps)) !== false)) {
+        while (($data = fgetcsv($handle, 10000, $delimiter, $encaps)) !== false) {
             // remove empty line in csv
-            if ((count($data) >= 1)) {
+            if (count($data) >= 1) {
                 $mydata[] = $data;
                 $i++;
                 if ($i >= $records) {
@@ -930,23 +925,22 @@ final class ImporterController extends MainController
     /**
      * Convert charset if necessary
      *
-     * @param array $data Contains values to convert
-     *
-     * @return	array	array of charset-converted values
      * @see \TYPO3\CMS\Core\Charset\CharsetConverter::conv[]
+     *
+     * @param array $data Contains values to convert
+     * @return  array   array of charset-converted values
      */
     public function convCharset(array $data): array
     {
         $dbCharset = 'utf-8';
-        if ($dbCharset != $this->indata['charset']) {
+        if ($dbCharset !== $this->indata['charset']) {
             $converter = GeneralUtility::makeInstance(CharsetConverter::class);
             foreach ($data as $k => $v) {
-                if(is_array($v)) {
-                    foreach($v as $k2 => $val) {
+                if (is_array($v)) {
+                    foreach ($v as $k2 => $val) {
                         $data[$k][$k2] = $converter->conv($val, strtolower($this->indata['charset']), $dbCharset);
                     }
-                }
-                else {
+                } else {
                     $data[$k] = $converter->conv($v, strtolower($this->indata['charset']), $dbCharset);
                 }
             }
@@ -957,7 +951,7 @@ final class ImporterController extends MainController
     /**
      * Write CSV Data to a temporary file and will be used for the import
      *
-     * @return	array		path and uid of the temp file
+     * @return  array       path and uid of the temp file
      */
     public function writeTempFile(string $csv, string $newFile, int $newFileUid): array
     {
@@ -965,7 +959,7 @@ final class ImporterController extends MainController
 
         $userPermissions = $this->beUser->getFilePermissions();
         // Initializing:
-        /* @var $extendedFileUtility ExtendedFileUtility */
+        /** @var ExtendedFileUtility $extendedFileUtility */
         $extendedFileUtility = GeneralUtility::makeInstance(ExtendedFileUtility::class);
         $extendedFileUtility->setActionPermissions($userPermissions);
         $extendedFileUtility->setExistingFilesConflictMode(DuplicationBehavior::REPLACE);
@@ -975,7 +969,7 @@ final class ImporterController extends MainController
             $refInfo = parse_url($this->getHttpReferer());
             $httpHost = $this->getRequestHostOnly();
 
-            if ($httpHost != $refInfo['host'] && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+            if ($httpHost !== $refInfo['host'] && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
                 $this->beUser->writeLog(SystemLogType::FILE, 0, 2, 1, 'Referer host "%s" and server host "%s" did not match!', [$refInfo['host'], $httpHost]);
             } else {
                 // new file
@@ -1006,15 +1000,15 @@ final class ImporterController extends MainController
     /**
      * Checks if a file has been uploaded and returns the complete physical fileinfo if so.
      *
-     * @return	array	\TYPO3\CMS\Core\Resource\File	the complete physical file name, including path info.
-     * @throws \Exception
+     * @return  array   \TYPO3\CMS\Core\Resource\File   the complete physical file name, including path info.
+     * @throws Exception
      */
     public function checkUpload(): array
     {
         $newfile = ['newFile' => '', 'newFileUid' => 0];
 
         // Initializing:
-        /* @var $extendedFileUtility ExtendedFileUtility */
+        /** @var ExtendedFileUtility $extendedFileUtility */
         $extendedFileUtility = GeneralUtility::makeInstance(ExtendedFileUtility::class);
         $extendedFileUtility->setActionPermissions();
         $extendedFileUtility->setExistingFilesConflictMode(DuplicationBehavior::REPLACE);
@@ -1023,7 +1017,7 @@ final class ImporterController extends MainController
         $refInfo = parse_url($this->getHttpReferer());
         $httpHost = $this->getRequestHostOnly();
 
-        if ($httpHost != $refInfo['host'] && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+        if ($httpHost !== $refInfo['host'] && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
             $this->beUser->writeLog(SystemLogType::FILE, 0, 2, 1, 'Referer host "%s" and server host "%s" did not match!', [$refInfo['host'], $httpHost]);
         } else {
             $extendedFileUtility->start($this->csvFile);
@@ -1043,23 +1037,18 @@ final class ImporterController extends MainController
     }
 
     /**
-     * @param int $fileUid
-     * @return \TYPO3\CMS\Core\Resource\File|bool
+     * @return File|bool
      */
     private function getFileById(int $fileUid): File|bool
     {
         $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
         try {
             return $resourceFactory->getFileObject($fileUid);
-        } catch(\TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException $e) {
+        } catch (FileDoesNotExistException $e) {
         }
         return false;
     }
 
-    /**
-     * @param int $fileUid
-     * @return string
-     */
     private function getFileAbsolutePath(int $fileUid): string
     {
         $file = $this->getFileById($fileUid);
@@ -1072,19 +1061,16 @@ final class ImporterController extends MainController
     /**
      * Returns first temporary folder of the user account
      *
-     * @return	string Absolute path to first "_temp_" folder of the current user, otherwise blank.
+     * @return  string Absolute path to first "_temp_" folder of the current user, otherwise blank.
      */
     public function userTempFolder(): string
     {
         $defaultUploadFolderResolver = GeneralUtility::makeInstance(DefaultUploadFolderResolver::class);
-        /** @var \TYPO3\CMS\Core\Resource\Folder $folder */
+        /** @var Folder $folder */
         $folder = $defaultUploadFolderResolver->resolve($this->beUser);
         return $folder->getPublicUrl();
     }
 
-    /**
-     * @return int
-     */
     private function getTimestampFromAspect(): int
     {
         $context = GeneralUtility::makeInstance(Context::class);

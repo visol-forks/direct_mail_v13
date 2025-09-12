@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace DirectMailTeam\DirectMail\Repository;
 
 use DirectMailTeam\DirectMail\DmQueryGenerator;
-use DirectMailTeam\DirectMail\Repository\FeGroupsRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -19,14 +18,13 @@ class TempRepository extends MainRepository
      * @param array $listArr List of recipient IDs
      * @param string $table Table name
      * @param array $fields Field to be selected
-     *
      * @return array recipients' data
      */
     public function fetchRecordsListValues(
-        array $listArr, 
-        string $table, 
-        array $fields = ['uid', 'name', 'email']): array
-    {
+        array $listArr,
+        string $table,
+        array $fields = ['uid', 'name', 'email']
+    ): array {
         $outListArr = [];
         if (is_array($listArr) && count($listArr)) {
             $idlist = implode(',', $listArr);
@@ -76,8 +74,7 @@ class TempRepository extends MainRepository
      * @param array $pidArray The pidArray
      * @param int $groupUid The groupUid.
      * @param int $cat The number of relations from sys_dmail_group to sysmail_categories
-     *
-     * @return	array The resulting array of uid's
+     * @return  array The resulting array of uid's
      */
     public function getIdList(string $table, array $pidArray, int $groupUid, int $cat): array
     {
@@ -161,7 +158,6 @@ class TempRepository extends MainRepository
      *
      * @param string $table The table to select from
      * @param int $uid The uid of the direct_mail group
-     *
      * @return array The resulting array of uid's
      */
     public function getStaticIdList(string $table, int $uid): array
@@ -231,14 +227,13 @@ class TempRepository extends MainRepository
      *
      * @param string $table The table to select from
      * @param array $group The direct_mail group record
-     *
      * @return array The resulting query.
      */
     public function getSpecialQueryIdList(DmQueryGenerator $queryGenerator, string $table, array $group): array
     {
         $outArr = [];
         if ($group['query']) {
-            $select = $queryGenerator->getQueryDM((bool)$group['queryLimitDisabled']);
+            $select = $queryGenerator->getQueryDM((bool) $group['queryLimitDisabled']);
             //$queryGenerator->extFieldLists['queryFields'] = 'uid';
             if ($select) {
                 $connection = $this->getConnection($table);
@@ -257,14 +252,13 @@ class TempRepository extends MainRepository
      * @param string $table Table name
      * @param array $row Row from table
      * @param int $sysLanguageUid User language ID
-     *
      * @return array the categories in an array with the cat id as keys
      */
     public function makeCategories(string $table, array $row, int $sysLanguageUid): array
     {
         $categories = [];
 
-        $mmField = $table == 'sys_dmail_group' ? 'select_categories' : 'module_sys_dmail_category';
+        $mmField = $table === 'sys_dmail_group' ? 'select_categories' : 'module_sys_dmail_category';
         $tableSysDmailCategory = 'sys_dmail_category';
 
         $pageTsConfig = BackendUtility::getTCEFORM_TSconfig($table, $row);
@@ -277,7 +271,7 @@ class TempRepository extends MainRepository
                 ->from($tableSysDmailCategory)
                 ->where(
                     $queryBuilder->expr()->eq(
-                        'l18n_parent', 
+                        'l18n_parent',
                         $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                     ),
                     $queryBuilder->expr()->in(
@@ -300,8 +294,8 @@ class TempRepository extends MainRepository
     }
 
     protected function selectByMultipleCondition(
-        string $table, 
-        array $row, 
+        string $table,
+        array $row,
         int $sysLanguageUid,
         array $tcaTable
     ) {
@@ -310,15 +304,15 @@ class TempRepository extends MainRepository
         ->from($table)
         ->where(
             $queryBuilder->expr()->eq(
-                'pid', 
+                'pid',
                 $queryBuilder->createNamedParameter($row['pid'], Connection::PARAM_INT)
             ),
             $queryBuilder->expr()->eq(
-                $tcaTable['ctrl']['languageField'], 
+                $tcaTable['ctrl']['languageField'],
                 $queryBuilder->createNamedParameter($sysLanguageUid, Connection::PARAM_INT)
             ),
             $queryBuilder->expr()->eq(
-                $tcaTable['ctrl']['transOrigPointerField'], 
+                $tcaTable['ctrl']['transOrigPointerField'],
                 $queryBuilder->createNamedParameter($row['uid'], Connection::PARAM_INT)
             )
         )
@@ -334,14 +328,13 @@ class TempRepository extends MainRepository
      * @param string $table Table name
      * @param array $row Record to overlay. Must contain uid, pid and languageField
      * @param int $sysLanguageUid Language ID of the content
-     *
      * @return array Returns the input record, possibly overlaid with a translation.
      */
     public function getRecordOverlay(
         string $table,
         array $row,
-        int $sysLanguageUid): array
-    {
+        int $sysLanguageUid
+    ): array {
         if ($row['uid'] > 0 && $row['pid'] > 0) {
             $tcaTable = $GLOBALS['TCA'][$table] ?? false;
             if ($tcaTable && $tcaTable['ctrl']['languageField'] && $tcaTable['ctrl']['transOrigPointerField']) {
@@ -356,12 +349,12 @@ class TempRepository extends MainRepository
                         // Merge record content by traversing all fields:
                         if (is_array($olrow)) {
                             foreach ($row as $fN => $fV) {
-                                if ($fN != 'uid' && $fN != 'pid' && isset($olrow[$fN])) {
-                                    if(!isset($tcaTable['l10n_mode'][$fN]) && strcmp(trim((string)$olrow[$fN]), '')) {
+                                if ($fN !== 'uid' && $fN !== 'pid' && isset($olrow[$fN])) {
+                                    if (!isset($tcaTable['l10n_mode'][$fN]) && strcmp(trim((string) $olrow[$fN]), '')) {
                                         $row[$fN] = $olrow[$fN];
-                                    }
-                                    elseif (isset($tcaTable['l10n_mode'][$fN]) && $tcaTable['l10n_mode'][$fN] != 'exclude' 
-                                        && ($tcaTable['l10n_mode'][$fN] != 'mergeIfNotBlank' || strcmp(trim((string)$olrow[$fN]), ''))
+                                    } elseif (
+                                        isset($tcaTable['l10n_mode'][$fN]) && $tcaTable['l10n_mode'][$fN] !== 'exclude'
+                                        && ($tcaTable['l10n_mode'][$fN] !== 'mergeIfNotBlank' || strcmp(trim((string) $olrow[$fN]), ''))
                                     ) {
                                         $row[$fN] = $olrow[$fN];
                                     }
@@ -371,7 +364,7 @@ class TempRepository extends MainRepository
 
                     // Otherwise, check if sysLanguageUid is different from the value of the record
                     // that means a japanese site might try to display french content.
-                    } elseif ($sysLanguageUid != $row[$tcaTable['ctrl']['languageField']]) {
+                    } elseif ($sysLanguageUid !== $row[$tcaTable['ctrl']['languageField']]) {
                         unset($row);
                     }
                 } else {
@@ -388,8 +381,6 @@ class TempRepository extends MainRepository
     }
 
     /**
-     * @param string $table
-     * @param int $uid
      * @return array|bool
      */
     public function selectRowsByUid(string $table, int $uid)
@@ -469,7 +460,7 @@ class TempRepository extends MainRepository
         $connection = $this->getConnection($table);
         return $connection->delete(
             $table, // from
-            [ 'mid' => $uid ] // where
+            ['mid' => $uid] // where
         );
     }
 

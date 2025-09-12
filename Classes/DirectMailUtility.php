@@ -35,11 +35,6 @@ use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 /**
  * Static class.
  * Functions in this class are used by more than one modules.
- *
- * @author		Kasper Skaarhoj <kasperYYYY@typo3.com>
- * @author  	Jan-Erik Revsbech <jer@moccompany.com>
- * @author  	Stanislas Rolland <stanislas.rolland(arobas)fructifor.ca>
- * @author		Ivan-Dharma Kartolo	<ivan.kartolo@dkd.de>
  */
 class DirectMailUtility
 {
@@ -47,7 +42,6 @@ class DirectMailUtility
      * Get locallang label
      *
      * @param string $name Locallang label index
-     *
      * @return string The label
      */
     public static function fName($name): string
@@ -55,9 +49,6 @@ class DirectMailUtility
         return stripslashes(self::getLanguageService()->sL(BackendUtility::getItemLabel('sys_dmail', $name)));
     }
 
-    /**
-     * @return LanguageService
-     */
     public static function getLanguageService(): LanguageService
     {
         return GeneralUtility::makeInstance(LanguageServiceFactory::class)->createFromUserPreferences(self::getBackendUser());
@@ -65,7 +56,6 @@ class DirectMailUtility
 
     /**
      * Returns the Backend User
-     * @return BackendUserAuthentication
      */
     public static function getBackendUser(): BackendUserAuthentication
     {
@@ -75,18 +65,16 @@ class DirectMailUtility
     /**
      * Get URL glue
      *
-     * @param string $url
-     *
      * @return string '& or ?'
      */
     public static function getURLGlue(string $url): string
     {
-        return (strpos($url, '?') !== false) ? '&' : '?';
+        return strpos($url, '?') !== false ? '&' : '?';
     }
 
     public static function prepareTypolinkParams(string $params): string
     {
-        return substr($params, 0, 1) == '&' ? substr($params, 1) : $params;
+        return substr($params, 0, 1) === '&' ? substr($params, 1) : $params;
     }
 
     public static function getTypolinkURL(
@@ -110,7 +98,6 @@ class DirectMailUtility
      * @param array $row Directmail DB record
      * @param array $params Any default parameters (usually the ones from pageTSconfig)
      * @param bool $returnArray Return error or warning message as array instead of string
-     *
      * @return array|string Error or warning message during fetching the content
      */
     public static function fetchUrlContentsForDirectMailRecord(array $row, array $params, $returnArray = false)
@@ -126,16 +113,16 @@ class DirectMailUtility
         //$row['long_link_rdct_url'] = $urls['baseUrl'];
 
         // Compile the mail
-        /* @var $htmlmail Dmailer */
+        /** @var Dmailer $htmlmail */
         $htmlmail = GeneralUtility::makeInstance(Dmailer::class);
         if ($params['enable_jump_url'] ?? false) {
             $glue = self::getURLGlue($urls['baseUrl']);
             $htmlmail->setJumperURLPrefix(
-                $urls['baseUrl'] . $glue .
-                'mid=###SYS_MAIL_ID###' .
-                ((int)$params['jumpurl_tracking_privacy'] ? '' : '&rid=###SYS_TABLE_NAME###_###USER_uid###') .
-                '&aC=###SYS_AUTHCODE###' .
-                '&jumpurl='
+                $urls['baseUrl'] . $glue
+                . 'mid=###SYS_MAIL_ID###'
+                . ((int) $params['jumpurl_tracking_privacy'] ? '' : '&rid=###SYS_TABLE_NAME###_###USER_uid###')
+                . '&aC=###SYS_AUTHCODE###'
+                . '&jumpurl='
             );
 
             $htmlmail->setJumperURLUseId(true);
@@ -164,15 +151,15 @@ class DirectMailUtility
             // Username and password is added in htmlmail object
             $success = $htmlmail->addHTML(self::addUserPass($urls['htmlUrl'], $params));
             // If type = 1, we have an external page.
-            if ($row['type'] == 1) {
+            if ($row['type'] === 1) {
                 // Try to auto-detect the charset of the message
                 $matches = [];
                 $res = preg_match(
                     '/<meta[\s]+http-equiv="Content-Type"[\s]+content="text\/html;[\s]+charset=([^"]+)"/m',
-                    ($htmlmail->getParts()['html_content'] ?? ''),
+                    $htmlmail->getParts()['html_content'] ?? '',
                     $matches
                 );
-                if ($res == 1) {
+                if ($res === 1) {
                     $htmlmail->setCharset($matches[1]);
                 } elseif (isset($params['direct_mail_charset'])) {
                     $htmlmail->setCharset($params['direct_mail_charset']);
@@ -202,7 +189,7 @@ class DirectMailUtility
                 'long_link_rdct_url' => $urls['baseUrl'],
             ];
 
-            $done = GeneralUtility::makeInstance(SysDmailRepository::class)->updateSysDmailRecord((int)$row['uid'], $updateData);
+            $done = GeneralUtility::makeInstance(SysDmailRepository::class)->updateSysDmailRecord((int) $row['uid'], $updateData);
 
             if (count($warningMsg)) {
                 $flashMessageRendererResolver = self::getFlashMessageRendererResolver();
@@ -237,22 +224,18 @@ class DirectMailUtility
 
     /**
         https://api.typo3.org/main/class_t_y_p_o3_1_1_c_m_s_1_1_core_1_1_messaging_1_1_abstract_message.html
-        const 	NOTICE = -2
-        const 	INFO = -1
-        const 	OK = 0
-        const 	WARNING = 1
-        const 	ERROR = 2
-     * @param string $messageText
-     * @param string $messageHeader
-     * @param ContextualFeedbackSeverity $messageType
-     * @param bool $storeInSession
+        const   NOTICE = -2
+        const   INFO = -1
+        const   OK = 0
+        const   WARNING = 1
+        const   ERROR = 2
      */
     protected static function createFlashMessage(
         string $messageText,
         string $messageHeader,
         ContextualFeedbackSeverity $messageType,
-        bool $storeInSession = false): FlashMessage
-    {
+        bool $storeInSession = false
+    ): FlashMessage {
         return GeneralUtility::makeInstance(
             FlashMessage::class,
             $messageText,
@@ -273,7 +256,6 @@ class DirectMailUtility
      *
      * @param string $url The URL
      * @param array $params Parameters from pageTS
-     *
      * @return string The new URL with username and password
      */
     protected static function addUserPass(string $url, array $params): string
@@ -286,7 +268,7 @@ class DirectMailUtility
         }
         if (($params['simulate_usergroup'] ?? false) && MathUtility::canBeInterpretedAsInteger($params['simulate_usergroup'])) {
             $glue = self::getURLGlue($url);
-            $url = $url . $glue . 'dmail_fe_group=' . (int)$params['simulate_usergroup'] . '&access_token=' . GeneralUtility::makeInstance(DmRegistryUtility::class)->createAndGetAccessToken();
+            $url .= $glue . 'dmail_fe_group=' . (int) $params['simulate_usergroup'] . '&access_token=' . GeneralUtility::makeInstance(DmRegistryUtility::class)->createAndGetAccessToken();
         }
         return $url;
     }
@@ -295,7 +277,6 @@ class DirectMailUtility
      * Set up URL variables for this $row.
      *
      * @param array $row Directmail DB record
-     *
      * @return array $result Url_plain and url_html in an array
      */
     public static function getFullUrlsForDirectMailRecord(array $row): array
@@ -304,26 +285,26 @@ class DirectMailUtility
         if (!$_SERVER['HTTP_HOST']) {
             // In CLI / Scheduler context, $_SERVER['HTTP_HOST'] can be null
             $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
-            $site = $siteFinder->getSiteByPageId((int)$row['page']);
+            $site = $siteFinder->getSiteByPageId((int) $row['page']);
             $_SERVER['HTTP_HOST'] = $site->getBase()->getHost();
         }
         $result = [
-            'baseUrl' => self::getTypolinkURL((int)$row['page']),
+            'baseUrl' => self::getTypolinkURL((int) $row['page']),
             'htmlUrl' => '',
             'plainTextUrl' => '',
         ];
 
         // Finding the url to fetch content from
-        switch ((string)$row['type']) {
+        switch ((string) $row['type']) {
             case 1:
                 $result['htmlUrl'] = $row['HTMLParams'];
                 $result['plainTextUrl'] = $row['plainParams'];
                 break;
             default:
                 $params = self::prepareTypolinkParams($row['HTMLParams']);
-                $result['htmlUrl'] = self::getTypolinkURL((int)$row['page'] . '&' . $params);
+                $result['htmlUrl'] = self::getTypolinkURL((int) $row['page'] . '&' . $params);
                 $params = self::prepareTypolinkParams($row['plainParams']);
-                $result['plainTextUrl'] = self::getTypolinkURL((int)$row['page'] . '&' . $params);
+                $result['plainTextUrl'] = self::getTypolinkURL((int) $row['page'] . '&' . $params);
         }
 
         // plain
@@ -372,12 +353,14 @@ class DirectMailUtility
      * The real parameter is stored in the database and the hash-parameter/URL will be redirected to the real parameter when the link is clicked.
      * This function is about preserving long links in messages.
      *
+     * @deprecated since TYPO3 CMS 7, will be removed in TYPO3 CMS 8. Use mailer API instead
+     *
+     * @see makeRedirectUrl()
+     *
      * @param string $message Message content
      * @param string $urlmode URL mode; "76" or "all
      * @param string $index_script_url URL of index script (see makeRedirectUrl())
      * @return string Processed message content
-     * @see makeRedirectUrl()
-     * @deprecated since TYPO3 CMS 7, will be removed in TYPO3 CMS 8. Use mailer API instead
      */
     public static function substUrlsInPlainText(string $message, string $urlmode = '76', string $index_script_url = ''): string
     {
@@ -386,18 +369,17 @@ class DirectMailUtility
             return $message;
         }
 
-        $lengthLimit = $urlmode === 'all' ? 0 :(int)$urlmode;
+        $lengthLimit = $urlmode === 'all' ? 0 : (int) $urlmode;
         //$pattern = '/(http|https):\\/\\/.+(?=[\\]\\.\\?]*([\\! \'"()<>]+|$))/iU';
         // https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch08s02.html
         $pattern = '/\b((https?):\/\/|(www)\.)[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$]/i';
-        $messageSubstituted = preg_replace_callback(
+        return preg_replace_callback(
             $pattern,
             function (array $matches) use ($rdctUtility, $lengthLimit, $index_script_url) {
                 return $rdctUtility->getRedirects()->makeRedirectUrl($matches[0], $lengthLimit, $index_script_url);
             },
             $message
         );
-        return $messageSubstituted;
     }
 
     /**

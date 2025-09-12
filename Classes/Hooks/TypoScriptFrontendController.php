@@ -21,8 +21,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Hooks which is called while FE rendering
- *
- * Class TypoScriptFrontendController
  */
 class TypoScriptFrontendController
 {
@@ -33,8 +31,8 @@ class TypoScriptFrontendController
      */
     public function simulateUsergroup($parameters, \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController $typoScriptFrontendController): void
     {
-        $directMailFeGroup = (int)($GLOBALS['TYPO3_REQUEST']->getQueryParams()['dmail_fe_group'] ?? null);
-        $accessToken = (string)($GLOBALS['TYPO3_REQUEST']->getQueryParams()['access_token'] ?? null);
+        $directMailFeGroup = (int) ($GLOBALS['TYPO3_REQUEST']->getQueryParams()['dmail_fe_group'] ?? null);
+        $accessToken = (string) ($GLOBALS['TYPO3_REQUEST']->getQueryParams()['access_token'] ?? null);
         if ($directMailFeGroup > 0 && GeneralUtility::makeInstance(DmRegistryUtility::class)->validateAndRemoveAccessToken($accessToken)) {
             /** @var UserAspect $userAspect */
             $userAspect = $typoScriptFrontendController->getContext()->getAspect('frontend.user');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DirectMailTeam\DirectMail\Repository;
 
+use Exception;
+use PDO;
 use TYPO3\CMS\Core\Database\Connection;
 
 class SysDmailMaillogRepository extends MainRepository
@@ -240,9 +242,7 @@ class SysDmailMaillogRepository extends MainRepository
     }
 
     /**
-     * @param int $uid
      * @param int $responseType: 1 for html, 2 for plain
-     * @return array
      */
     public function selectMostPopularLinks(int $uid, int $responseType = 1): array
     {
@@ -562,9 +562,6 @@ class SysDmailMaillogRepository extends MainRepository
 
     /**
      * Check if an entry exists that is younger than 10 seconds
-     *
-     * @param array $mailLogParameters
-     * @return bool
      */
     public function hasRecentLog(array $mailLogParameters): bool
     {
@@ -604,13 +601,13 @@ class SysDmailMaillogRepository extends MainRepository
                 ),
                 $queryBuilder->expr()->gte(
                     'tstamp',
-                    $queryBuilder->createNamedParameter($mailLogParameters['tstamp']-10, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($mailLogParameters['tstamp'] - 10, Connection::PARAM_INT)
                 )
             );
 
         $existingLog = $query->executeQuery()->fetchOne();
 
-        return (int)$existingLog > 0;
+        return (int) $existingLog > 0;
     }
 
     public function updateSysDmailMaillogForShipOfMail(int $logUid, int $htmlSent, int $parseTime, int $size, int $failedSendingAttempts)
@@ -627,7 +624,7 @@ class SysDmailMaillogRepository extends MainRepository
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $queryBuilder->createNamedParameter($logUid, \PDO::PARAM_INT)
+                    $queryBuilder->createNamedParameter($logUid, PDO::PARAM_INT)
                 )
             )
             ->executeStatement();
@@ -639,8 +636,7 @@ class SysDmailMaillogRepository extends MainRepository
      * @param int $mid Newsletter ID. UID of the sys_dmail record
      * @param int $rid Recipient UID
      * @param string $rtbl Recipient table
-     *
-     * @return	bool Number of found records
+     * @return  bool Number of found records
      */
     public function dmailerIsSend(int $mid, int $rid, string $rtbl): bool
     {
@@ -681,7 +677,7 @@ class SysDmailMaillogRepository extends MainRepository
             )
             ->executeQuery();
 
-        return (bool)$statement->rowCount();
+        return (bool) $statement->rowCount();
     }
 
     /**
@@ -694,7 +690,6 @@ class SysDmailMaillogRepository extends MainRepository
      * @param int $html Set if HTML email is sent
      * @param string $email Recipient's email
      * @param int $attempt number of sending attempts
-     *
      * @return int True on success or False on error
      */
     public function dmailerAddToMailLog(int $mid, string $rid, int $size, int $parsetime, int $html, string $email, int $attempt): int
@@ -706,8 +701,8 @@ class SysDmailMaillogRepository extends MainRepository
             ->insert($this->table)
             ->values([
                 'mid' => $mid,
-                'rtbl' => (string)$rtbl,
-                'rid' => (int)$rid,
+                'rtbl' => (string) $rtbl,
+                'rid' => (int) $rid,
                 'email' => $email,
                 'tstamp' => time(),
                 'url' => '',
@@ -718,7 +713,7 @@ class SysDmailMaillogRepository extends MainRepository
             ])
             ->executeStatement();
 
-        return (int)$queryBuilder->getConnection()->lastInsertId();
+        return (int) $queryBuilder->getConnection()->lastInsertId();
     }
 
     public function analyzeBounceMailAddToMailLog(
@@ -733,8 +728,8 @@ class SysDmailMaillogRepository extends MainRepository
             ->values([
                 'tstamp' => $tstamp,
                 'response_type' => -127,
-                'mid' => (int)$midArray['mid'],
-                'rid' => (int)$midArray['rid'],
+                'mid' => (int) $midArray['mid'],
+                'rid' => (int) $midArray['rid'],
                 'email' => $midArray['email'],
                 'rtbl' => $midArray['rtbl'],
                 'return_content' => $returnContent,
@@ -742,16 +737,15 @@ class SysDmailMaillogRepository extends MainRepository
             ])
             ->executeStatement();
 
-        return (int)$queryBuilder->getConnection()->lastInsertId();
+        return (int) $queryBuilder->getConnection()->lastInsertId();
     }
 
     /**
      * Get IDs of recipient, which has been sent
      *
-     * @param	int $mid Newsletter ID. UID of the sys_dmail record
-     * @param	string $rtbl Recipient table
-     *
-     * @return	string		list of sent recipients
+     * @param   int $mid Newsletter ID. UID of the sys_dmail record
+     * @param   string $rtbl Recipient table
+     * @return  string      list of sent recipients
      */
     public function dmailerGetSentMails(int $mid, string $rtbl): string
     {
@@ -767,7 +761,7 @@ class SysDmailMaillogRepository extends MainRepository
             ->fetchOne();
 
         if ($numberOfLogEntriesWithMoreThan5FailedAttempts > 0) {
-            throw new \Exception(
+            throw new Exception(
                 'In this mail delivery for mid ' . $mid . ' , there is at least one recipient with 5 failed sending attempts (see Statistics module). This case cannot be handled, therefore exiting the sending process. Try cleaning up manually before sending again.',
                 1650837797
             );

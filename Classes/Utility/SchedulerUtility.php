@@ -37,8 +37,8 @@ class SchedulerUtility
         if (is_array($tasks) && count($tasks) > 0) {
             foreach ($tasks as $task) {
                 $taskData = [
-                    'uid' => (int)$task['uid'],
-                    'lastExecutionTime' => (int)$task['lastexecution_time'],
+                    'uid' => (int) $task['uid'],
+                    'lastExecutionTime' => (int) $task['lastexecution_time'],
                     'lastExecutionContext' => $task['lastexecution_context'],
                     'errorMessage' => '',
                     'description' => $task['description'],
@@ -69,7 +69,7 @@ class SchedulerUtility
                 }
 
                 if ($taskObject instanceof ProgressProviderInterface) {
-                    $taskData['progress'] = round((float)$taskObject->getProgress(), 2);
+                    $taskData['progress'] = round((float) $taskObject->getProgress(), 2);
                 }
 
                 if (!isset($registeredClasses[$taskClass])) {
@@ -79,21 +79,21 @@ class SchedulerUtility
                 }
 
                 if ($taskObject instanceof ProgressProviderInterface) {
-                    $taskData['progress'] = round((float)$taskObject->getProgress(), 2);
+                    $taskData['progress'] = round((float) $taskObject->getProgress(), 2);
                 }
                 $taskData['classTitle'] = $registeredClasses[$taskClass]['title'];
                 $taskData['classExtension'] = $registeredClasses[$taskClass]['extension'];
                 $taskData['additionalInformation'] = $taskObject->getAdditionalInformation();
-                $taskData['disabled'] = (bool)$task['disable'];
+                $taskData['disabled'] = (bool) $task['disable'];
                 $taskData['isRunning'] = !empty($task['serialized_executions']);
-                $taskData['nextExecution'] = (int)$task['nextexecution'];
+                $taskData['nextExecution'] = (int) $task['nextexecution'];
                 $taskData['type'] = 'single';
                 $taskData['frequency'] = '';
                 if ($taskObject->getType() === AbstractTask::TYPE_RECURRING) {
                     $taskData['type'] = 'recurring';
                     $taskData['frequency'] = $taskObject->getExecution()->getCronCmd() ?: $taskObject->getExecution()->getInterval();
                 }
-                $taskData['multiple'] = (bool)$taskObject->getExecution()->getMultiple();
+                $taskData['multiple'] = (bool) $taskObject->getExecution()->getMultiple();
                 $taskData['lastExecutionFailure'] = false;
                 if (!empty($task['lastexecution_failure'])) {
                     $taskData['lastExecutionFailure'] = true;
@@ -107,7 +107,7 @@ class SchedulerUtility
                 }
 
                 // If a group is deleted or no group is set it needs to go into "not assigned groups"
-                $groupIndex = $task['isTaskGroupDeleted'] === 1 || $task['isTaskGroupDeleted'] === null ? 0 : (int)$task['task_group'];
+                $groupIndex = $task['isTaskGroupDeleted'] === 1 || $task['isTaskGroupDeleted'] === null ? 0 : (int) $task['task_group'];
                 if (!isset($taskGroupsWithTasks[$groupIndex])) {
                     $taskGroupsWithTasks[$groupIndex] = [
                         'tasks' => [],

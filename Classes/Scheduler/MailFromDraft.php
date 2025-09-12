@@ -2,6 +2,18 @@
 
 namespace DirectMailTeam\DirectMail\Scheduler;
 
+use DirectMailTeam\DirectMail\DirectMailUtility;
+use DirectMailTeam\DirectMail\Module\DmailController;
+use DirectMailTeam\DirectMail\Repository\SysDmailRepository;
+use Exception;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Routing\InvalidRouteArgumentsException;
+use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Scheduler\Task\AbstractTask;
+
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,23 +27,9 @@ namespace DirectMailTeam\DirectMail\Scheduler;
  * The TYPO3 project - inspiring people to share!
  */
 
-use DirectMailTeam\DirectMail\DirectMailUtility;
-use DirectMailTeam\DirectMail\Module\DmailController;
-use DirectMailTeam\DirectMail\Repository\SysDmailRepository;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Routing\InvalidRouteArgumentsException;
-use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Scheduler\Task\AbstractTask;
-
 /**
- * Class tx_directmail_Scheduler_MailFromDraft
  * takes a specific draft and compiles it again, and then creates another
  * directmail record that is ready for sending right away
- *
- * @author	Benjamin Mack <benni@typo3.org>
  */
 class MailFromDraft extends AbstractTask
 {
@@ -54,8 +52,6 @@ class MailFromDraft extends AbstractTask
     /**
      * Function executed from scheduler.
      * Creates a new newsletter record, and sets the scheduled time to "now"
-     *
-     * @return	bool
      */
     public function execute(): bool
     {
@@ -82,11 +78,12 @@ class MailFromDraft extends AbstractTask
             $draftRecord['query_info'] = serialize($newRecipients['queryInfo']);
 
             // check if domain record is set
-            if (Environment::isCli()
-                && (int)$draftRecord['type'] !== 1
-                && !$this->checkUrlBase((int)$draftRecord['page'])
+            if (
+                Environment::isCli()
+                && (int) $draftRecord['type'] !== 1
+                && !$this->checkUrlBase((int) $draftRecord['page'])
             ) {
-                throw new \Exception('No site found in root line of page ' . $draftRecord['page'] . '!', 6078321898);
+                throw new Exception('No site found in root line of page ' . $draftRecord['page'] . '!', 6078321898);
             }
 
             $this->dmailUid = GeneralUtility::makeInstance(SysDmailRepository::class)->insertDMailRecord($draftRecord);
@@ -105,7 +102,7 @@ class MailFromDraft extends AbstractTask
             $result = DirectMailUtility::fetchUrlContentsForDirectMailRecord($mailRecord, $defaultParams, true);
 
             if ($result['errors'] !== []) {
-                throw new \Exception('Failed to fetch contents: ' . implode(', ', $result['errors']), 4132384402);
+                throw new Exception('Failed to fetch contents: ' . implode(', ', $result['errors']), 4132384402);
             }
 
             $mailRecord = BackendUtility::getRecord('sys_dmail', $this->dmailUid);
@@ -130,8 +127,6 @@ class MailFromDraft extends AbstractTask
     /**
      * Get the base URL
      *
-     * @param int $pageId
-     * @return bool
      * @throws SiteNotFoundException
      * @throws InvalidRouteArgumentsException
      */
@@ -170,15 +165,15 @@ class MailFromDraft extends AbstractTask
     /**
      * Initializes hook objects for this class
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function initializeHookObjects(): void
     {
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['direct_mail']['mailFromDraft'] ?? false)) {
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['direct_mail']['mailFromDraft'] as $hookObj) {
                 $hookObjectInstance = GeneralUtility::makeInstance($hookObj);
-                if (!(is_object($hookObjectInstance) && ($hookObjectInstance instanceof MailFromDraftHookInterface))) {
-                    throw new \Exception('Hook object for "mailFromDraft" must implement the "MailFromDraftHookInterface"!', 1400866815);
+                if (!(is_object($hookObjectInstance) && $hookObjectInstance instanceof MailFromDraftHookInterface)) {
+                    throw new Exception('Hook object for "mailFromDraft" must implement the "MailFromDraftHookInterface"!', 1400866815);
                 }
                 $this->hookObjects[] = $hookObjectInstance;
             }

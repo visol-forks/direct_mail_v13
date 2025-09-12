@@ -60,6 +60,7 @@ class MainController
      * A WHERE clause for selection records from the pages table based on read-permissions of the current backend user.
      *
      * @see init()
+     *
      * @var string
      */
     protected string $perms_clause = '';
@@ -76,7 +77,7 @@ class MainController
     /**
      * Constructor Method
      *
-     * @var ModuleTemplate $moduleTemplate
+     * @var ModuleTemplate
      */
     public function __construct(
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
@@ -94,11 +95,11 @@ class MainController
 
         $this->moduleTemplate = $this->moduleTemplateFactory->create($request);
 
-        $this->id             = (int)($parsedBody['id']              ?? $queryParams['id'] ?? 0);
-        $this->cmd            = (string)($parsedBody['cmd']          ?? $queryParams['cmd'] ?? '');
-        $this->pages_uid      = (string)($parsedBody['pages_uid']    ?? $queryParams['pages_uid'] ?? '');
-        $this->sys_dmail_uid  = (int)($parsedBody['sys_dmail_uid']   ?? $queryParams['sys_dmail_uid'] ?? 0);
-        $this->updatePageTree = (bool)($parsedBody['updatePageTree'] ?? $queryParams['updatePageTree'] ?? false);
+        $this->id             = (int) ($parsedBody['id'] ?? $queryParams['id'] ?? 0);
+        $this->cmd            = (string) ($parsedBody['cmd'] ?? $queryParams['cmd'] ?? '');
+        $this->pages_uid      = (string) ($parsedBody['pages_uid'] ?? $queryParams['pages_uid'] ?? '');
+        $this->sys_dmail_uid  = (int) ($parsedBody['sys_dmail_uid'] ?? $queryParams['sys_dmail_uid'] ?? 0);
+        $this->updatePageTree = (bool) ($parsedBody['updatePageTree'] ?? $queryParams['updatePageTree'] ?? false);
 
         $this->perms_clause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
         $pageAccess = BackendUtility::readPageAccess($this->id, $this->perms_clause);
@@ -117,13 +118,12 @@ class MainController
         //$this->sys_language_uid = 0; //@TODO
 
         if ($this->updatePageTree) {
-            \TYPO3\CMS\Backend\Utility\BackendUtility::setUpdateSignal('updatePageTree');
+            BackendUtility::setUpdateSignal('updatePageTree');
         }
     }
 
     /**
      * Configure template paths for your backend module
-     * @return StandaloneView
      */
     protected function configureTemplatePaths(string $templateName): StandaloneView
     {
@@ -137,22 +137,18 @@ class MainController
 
     /**
         https://api.typo3.org/main/class_t_y_p_o3_1_1_c_m_s_1_1_core_1_1_messaging_1_1_abstract_message.html
-        const 	NOTICE = -2
-        const 	INFO = -1
-        const 	OK = 0
-        const 	WARNING = 1
-        const 	ERROR = 2
-     * @param string $messageText
-     * @param string $messageHeader
-     * @param ContextualFeedbackSeverity $messageType
-     * @param bool $storeInSession
+        const   NOTICE = -2
+        const   INFO = -1
+        const   OK = 0
+        const   WARNING = 1
+        const   ERROR = 2
      */
     protected function createFlashMessage(
         string $messageText,
         string $messageHeader,
         ContextualFeedbackSeverity $messageType,
-        bool $storeInSession = false): FlashMessage
-    {
+        bool $storeInSession = false
+    ): FlashMessage {
         return GeneralUtility::makeInstance(
             FlashMessage::class,
             $messageText,
@@ -167,7 +163,7 @@ class MainController
         $module = $this->pageinfo['module'] ?? false;
 
         if (!$module && isset($this->pageinfo['uid'])) {
-            $pidrec = BackendUtility::getRecord('pages', (int)$this->pageinfo['uid']);
+            $pidrec = BackendUtility::getRecord('pages', (int) $this->pageinfo['uid']);
             $module = $pidrec['module'] ?? false;
         }
 
@@ -179,17 +175,11 @@ class MainController
         return $this->id;
     }
 
-    /**
-     * @return LanguageService
-     */
     protected function getLanguageService(): LanguageService
     {
         return GeneralUtility::makeInstance(LanguageServiceFactory::class)->createFromUserPreferences($this->getBackendUser());
     }
 
-    /**
-     * @return FlashMessageQueue
-     */
     protected function getFlashMessageQueue(string $identifier): FlashMessageQueue
     {
         return GeneralUtility::makeInstance(FlashMessageService::class)->getMessageQueueByIdentifier($identifier);
@@ -197,7 +187,6 @@ class MainController
 
     /**
      * Returns the Backend User
-     * @return BackendUserAuthentication
      */
     protected function getBackendUser(): BackendUserAuthentication
     {
@@ -225,9 +214,6 @@ class MainController
     }
 
     /**
-     * @param string $name
-     * @param array $parameters
-     * @return UriInterface
      * @throws RouteNotFoundException
      */
     protected function buildUriFromRoute(string $name, array $parameters = []): UriInterface
@@ -247,7 +233,7 @@ class MainController
 
         if (count($rows)) {
             foreach ($rows as $row) {
-                if ($this->getBackendUser()->doesUserHaveAccess(BackendUtility::getRecord('pages', (int)$row['uid']), 2)) {
+                if ($this->getBackendUser()->doesUserHaveAccess(BackendUtility::getRecord('pages', (int) $row['uid']), 2)) {
                     $dmLinks[] = [
                         'id' => $row['uid'],
                         'url' => $this->buildUriFromRoute($this->moduleName, ['id' => $row['uid'], 'updatePageTree' => '1']),
@@ -278,14 +264,14 @@ class MainController
             'country',
             'fax',
             'module_sys_dmail_category',
-            'module_sys_dmail_html'
+            'module_sys_dmail_html',
         ];
     }
 
     protected function getFieldListFeUsers(): array
     {
         $fieldList = $this->getFieldList();
-        foreach(['telephone' => 'phone'] as $key => $val) {
+        foreach (['telephone' => 'phone'] as $key => $val) {
             $index = array_search($val, $fieldList);
             $fieldList[$index] = $key;
         }
@@ -313,8 +299,7 @@ class MainController
      *
      * @param array $listArr All DB records to be formated
      * @param string $table Table name
-     *
-     * @return	array		list of record
+     * @return  array       list of record
      */
     protected function getRecordList(array $listArr, string $table): array
     {
@@ -350,7 +335,7 @@ class MainController
                 }
 
                 $name = $row['name'] ?? '';
-                if ($name == '') {
+                if ($name === '') {
                     if ($row['first_name'] ?? '') {
                         $name = $row['first_name'] . ' ';
                     }
@@ -376,9 +361,7 @@ class MainController
      * generate edit link for records
      * https://docs.typo3.org/m/typo3/reference-coreapi/main/en-us/ApiOverview/Backend/EditLinks.html
      *
-     * @param array $params
-     * @return Uri
-     * @throws \TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException
+     * @throws RouteNotFoundException
      */
     protected function getEditOnClickLink(array $params): Uri
     {
@@ -390,7 +373,6 @@ class MainController
      * Rearrange emails array into a 2-dimensional array
      *
      * @param array $plainMails Recipient emails
-     *
      * @return array a 2-dimensional array consisting email and name
      */
     protected function rearrangePlainMails(array $plainMails): array
@@ -398,8 +380,8 @@ class MainController
         $out = [];
         $c = 0;
         foreach ($plainMails as $v) {
-            # strip nonbreakspace chars
-            $v = preg_replace('/ /','',$v);
+            // strip nonbreakspace chars
+            $v = preg_replace('/ /', '', $v);
             $out[$c]['email'] = trim($v);
             $out[$c]['name'] = '';
             $c++;
@@ -412,7 +394,6 @@ class MainController
      * Remove double record in an array
      *
      * @param array $plainlist Email of the recipient
-     *
      * @return array Cleaned array
      */
     protected function cleanPlainList(array $plainlist): array
@@ -421,14 +402,14 @@ class MainController
          * $plainlist is a multidimensional array.
          * this method only remove if a value has the same array
          * $plainlist = [
-         * 		0 => [
-         * 			name => '',
-         * 			email => '',
-         * 		],
-         * 		1 => [
-         * 			name => '',
-         * 			email => '',
-         * 		],
+         *      0 => [
+         *          name => '',
+         *          email => '',
+         *      ],
+         *      1 => [
+         *          name => '',
+         *          email => '',
+         *      ],
          * ];
          */
         return array_map('unserialize', array_unique(array_map('serialize', $plainlist)));
@@ -446,7 +427,7 @@ class MainController
         $getLevels = 10000;
         // Finding tree and offer setting of values recursively.
         $tree = GeneralUtility::makeInstance(PageTreeView::class);
-        $tree->init(empty($perms_clause) ? ''  : 'AND ' . $perms_clause);
+        $tree->init(empty($perms_clause) ? '' : 'AND ' . $perms_clause);
         $tree->makeHTML = 0;
         $tree->setRecs = 0;
         $tree->getTree($id, $getLevels, '');
@@ -457,7 +438,7 @@ class MainController
     protected function countRecipients(array $idLists): int
     {
         $count = 0;
-        foreach(['tt_address', 'fe_users', 'PLAINLIST'] as $recipientsType) {
+        foreach (['tt_address', 'fe_users', 'PLAINLIST'] as $recipientsType) {
             if (is_array($idLists[$recipientsType] ?? false)) {
                 $count += count($idLists[$recipientsType]);
             }

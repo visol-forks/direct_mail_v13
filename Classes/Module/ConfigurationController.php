@@ -8,16 +8,18 @@ use DirectMailTeam\DirectMail\Utility\TsUtility;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
-use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+use const JSON_THROW_ON_ERROR;
 
 final class ConfigurationController extends MainController
 {
@@ -27,13 +29,10 @@ final class ConfigurationController extends MainController
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly IconFactory $iconFactory,
         protected readonly PageRenderer $pageRenderer,
-
         protected readonly string $moduleName = 'directmail_module_configuration',
         protected readonly string $TSconfPrefix = 'mod.web_modules.dmail.',
         protected readonly string $lllFile = 'LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf',
-
         protected ?LanguageService $languageService = null,
-
         protected array $pageTS = [],
         protected bool $submit = false,
         protected array $implodedParams = [],
@@ -51,7 +50,7 @@ final class ConfigurationController extends MainController
         $queryParams = $request->getQueryParams();
         $parsedBody = $request->getParsedBody();
 
-        $this->id = (int)($parsedBody['id'] ?? $queryParams['id'] ?? 0);
+        $this->id = (int) ($parsedBody['id'] ?? $queryParams['id'] ?? 0);
         $permsClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
         $pageAccess = BackendUtility::readPageAccess($this->id, $permsClause);
         $this->pageinfo = is_array($pageAccess) ? $pageAccess : [];
@@ -61,8 +60,8 @@ final class ConfigurationController extends MainController
         $this->pageTS = $parsedBody['pageTS'] ?? $queryParams['pageTS'] ?? [];
         $this->submit = isset($parsedBody['submit']) ? true : false;
 
-        foreach(['includeMedia', 'flowedFormat', 'use_rdct', 'long_link_mode', 'enable_jump_url', 'jumpurl_tracking_privacy', 'enable_mailto_jump_url', 'showContentTitle', 'prependContentTitle'] as $checkboxName) {
-            if(!isset($this->pageTS[$checkboxName])) {
+        foreach (['includeMedia', 'flowedFormat', 'use_rdct', 'long_link_mode', 'enable_jump_url', 'jumpurl_tracking_privacy', 'enable_mailto_jump_url', 'showContentTitle', 'prependContentTitle'] as $checkboxName) {
+            if (!isset($this->pageTS[$checkboxName])) {
                 $this->pageTS[$checkboxName] = '0';
             }
         }
@@ -78,21 +77,20 @@ final class ConfigurationController extends MainController
         // Load JavaScript via PageRenderer
         $this->pageRenderer->loadJavaScriptModule('@directmailteam/diractmail/Configuration.js');
         if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
-
             $module = $this->getModulName();
 
-            if ($module == 'dmail') {
+            if ($module === 'dmail') {
                 // Direct mail module
-                if (($this->pageinfo['doktype'] ?? 0) == 254) {
+                if (($this->pageinfo['doktype'] ?? 0) === 254) {
                     // get the config from pageTS
                     $params = BackendUtility::getPagesTSconfig($this->id)['mod.']['web_modules.']['dmail.'] ?? [];
                     $this->implodedParams = GeneralUtility::makeInstance(TsUtility::class)->implodeTSParams($params);
                     $this->setDefaultValues();
                     $view->assignMultiple([
                         'implodedParams' => $this->implodedParams,
-                        'uid' => $this->id
+                        'uid' => $this->id,
                     ]);
-                } elseif ($this->id != 0) {
+                } elseif ($this->id !== 0) {
                     $message = $this->createFlashMessage(
                         $this->languageService->sL($this->lllFile . ':dmail_noRegular'),
                         $this->languageService->sL($this->lllFile . ':dmail_newsletters'),
@@ -129,9 +127,6 @@ final class ConfigurationController extends MainController
         return $view->renderResponse('Configuration');
     }
 
-    /**
-     * @return ResponseFactoryInterface
-     */
     protected function getResponseFactory(): ResponseFactoryInterface
     {
         return GeneralUtility::makeInstance(ResponseFactoryInterface::class);
@@ -139,22 +134,19 @@ final class ConfigurationController extends MainController
 
     public function updateConfigAction(ServerRequestInterface $request): ?ResponseInterface
     {
-        $this->id = (int)($request->getParsedBody()['uid'] ?? 0);
+        $this->id = (int) ($request->getParsedBody()['uid'] ?? 0);
         $permsClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
         $pageAccess = BackendUtility::readPageAccess($this->id, $permsClause);
         $this->pageinfo = is_array($pageAccess) ? $pageAccess : [];
         $this->access = is_array($this->pageinfo);
-
 
         if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
             if ($this->getBackendUser()->doesUserHaveAccess(BackendUtility::getRecord('pages', $this->id), 2)) {
                 $this->languageService = $this->getLanguageService();
                 $this->pageTS = $request->getParsedBody()['pageTS'] ?? [];
 
-
-
-                foreach(['includeMedia', 'flowedFormat', 'use_rdct', 'long_link_mode', 'enable_jump_url', 'jumpurl_tracking_privacy', 'enable_mailto_jump_url', 'showContentTitle', 'prependContentTitle'] as $checkboxName) {
-                    if(!isset($this->pageTS[$checkboxName])) {
+                foreach (['includeMedia', 'flowedFormat', 'use_rdct', 'long_link_mode', 'enable_jump_url', 'jumpurl_tracking_privacy', 'enable_mailto_jump_url', 'showContentTitle', 'prependContentTitle'] as $checkboxName) {
+                    if (!isset($this->pageTS[$checkboxName])) {
                         $this->pageTS[$checkboxName] = '0';
                     }
                 }
@@ -167,21 +159,21 @@ final class ConfigurationController extends MainController
                 if ($done) {
                     $title = $this->languageService->sL($this->lllFile . ':mod.configuration.saved.title');
                     $message = $this->languageService->sL($this->lllFile . ':mod.configuration.saved');
-                }
-                else {
+                } else {
                     $title = $this->languageService->sL($this->lllFile . ':mod.configuration.not_saved');
                     $message = $this->languageService->sL($this->lllFile . ':mod.configuration.not_saved.title');
                 }
 
                 $responseFactory = $this->getResponseFactory();
                 $response = $responseFactory->createResponse()->withHeader('Content-Type', 'application/json; charset=utf-8');
-                $response->getBody()->write(json_encode(['result' => [
-                    'title' => $title,
-                    'message' => $message,
-                    'type' => $done
-                ]], JSON_THROW_ON_ERROR));
+                $response->getBody()->write(json_encode([
+                    'result' => [
+                        'title' => $title,
+                        'message' => $message,
+                        'type' => $done,
+                    ],
+                ], JSON_THROW_ON_ERROR));
                 return $response;
-
             }
         }
 
@@ -202,19 +194,19 @@ final class ConfigurationController extends MainController
     }
 
    /**
-     * Update the pageTS
-     * No return value: sent header to the same page
-     */
+    * Update the pageTS
+    * No return value: sent header to the same page
+    */
     protected function updatePageTS(): void
     {
         if ($this->getBackendUser()->doesUserHaveAccess(BackendUtility::getRecord('pages', $this->id), 2)) {
             if (is_array($this->pageTS) && count($this->pageTS)) {
                 $notificationQueue = $this->getFlashMessageQueue(FlashMessageQueue::NOTIFICATION_QUEUE);
                 $done = false;
-                if($this->submit) {
+                if ($this->submit) {
                     $done = GeneralUtility::makeInstance(TsUtility::class)->updatePagesTSconfig($this->id, $this->pageTS, $this->TSconfPrefix);
                 }
-                if($this->submit && $done) {
+                if ($this->submit && $done) {
                     $message = $this->createFlashMessage(
                         $this->languageService->sL($this->lllFile . ':mod.configuration.saved'),
                         $this->languageService->sL($this->lllFile . ':mod.configuration.saved.title'),
@@ -222,8 +214,7 @@ final class ConfigurationController extends MainController
                         false
                     );
                     $notificationQueue->enqueue($message);
-                }
-                elseif($this->submit && !$done) {
+                } elseif ($this->submit && !$done) {
                     $message = $this->createFlashMessage(
                         $this->languageService->sL($this->lllFile . ':mod.configuration.not_saved'),
                         $this->languageService->sL($this->lllFile . ':mod.configuration.not_saved.title'),

@@ -2,6 +2,20 @@
 
 namespace DirectMailTeam\DirectMail\Scheduler;
 
+use DirectMailTeam\DirectMail\Repository\SysDmailMaillogRepository;
+use DirectMailTeam\DirectMail\Utility\ReadmailUtility;
+use Doctrine\DBAL\DBALException;
+use Exception;
+use Fetch\Message;
+use Fetch\Server;
+use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Scheduler\Task\AbstractTask;
+
+use const E_USER_DEPRECATED;
+
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -15,55 +29,49 @@ namespace DirectMailTeam\DirectMail\Scheduler;
  * The TYPO3 project - inspiring people to share!
  */
 
-use DirectMailTeam\DirectMail\Repository\SysDmailMaillogRepository;
-use DirectMailTeam\DirectMail\Utility\ReadmailUtility;
-use Fetch\Message;
-use Fetch\Server;
-use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Scheduler\Task\AbstractTask;
-
 /**
- * Class AnalyzeBounceMail
- * @author Ivan Kartolo <ivan.kartolo@gmail.com>
  * @deprecated will be removed in TYPO3 v12.0. Use AnalyzeBounceMailCommand instead.
  */
 class AnalyzeBounceMail extends AbstractTask
 {
     /**
      * url of the mail server
+     *
      * @var string
      */
     protected $server;
 
     /**
      * Port number of the mail server
+     *
      * @var int
      */
     protected $port;
 
     /**
      * Username to use to authenticate
+     *
      * @var string
      */
     protected $user;
 
     /**
      * Password of the user
+     *
      * @var string
      */
     protected $password;
 
     /**
      * Mailserver type (imap or pop3)
+     *
      * @var string
      */
     protected $service;
 
     /**
      * Maximum number of bounce mail to be processed
+     *
      * @var int
      */
     protected $maxProcessed;
@@ -166,7 +174,7 @@ class AnalyzeBounceMail extends AbstractTask
      */
     public function setMaxProcessed($maxProcessed): void
     {
-        $this->maxProcessed = (int)$maxProcessed;
+        $this->maxProcessed = (int) $maxProcessed;
     }
 
     public function isKeepMailsOnServer(): bool
@@ -176,7 +184,7 @@ class AnalyzeBounceMail extends AbstractTask
 
     public function setKeepMailsOnServer(bool $keepMailsOnServer): void
     {
-        $this->keepMailsOnServer = (bool)$keepMailsOnServer;
+        $this->keepMailsOnServer = (bool) $keepMailsOnServer;
     }
 
     /**
@@ -217,6 +225,7 @@ class AnalyzeBounceMail extends AbstractTask
 
     /**
      * Process the bounce mail
+     *
      * @param Message $message the message object
      * @return bool true if bounce mail can be parsed, else false
      */
@@ -263,17 +272,17 @@ class AnalyzeBounceMail extends AbstractTask
                 $insertFields = [
                     'tstamp' => $this->getEXEC_TIME(),
                     'response_type' => -127,
-                    'mid' => (int)$midArray['mid'],
-                    'rid' => (int)$midArray['rid'],
+                    'mid' => (int) $midArray['mid'],
+                    'rid' => (int) $midArray['rid'],
                     'email' => $midArray['email'],
                     'rtbl' => $midArray['rtbl'],
                     'return_content' => serialize($cp),
-                    'return_code' => (int)$cp['reason'],
+                    'return_code' => (int) $cp['reason'],
                 ];
                 $connection->insert('sys_dmail_maillog', $insertFields);
                 $sql_insert_id = $connection->lastInsertId();
-                return (bool)$sql_insert_id;
-            } catch (\Doctrine\DBAL\DBALException $e) {
+                return (bool) $sql_insert_id;
+            } catch (DBALException $e) {
                 // Log $e->getMessage();
                 return false;
             }
@@ -295,7 +304,7 @@ class AnalyzeBounceMail extends AbstractTask
         $mailServer = GeneralUtility::makeInstance(
             Server::class,
             $this->server,
-            (int)$this->port,
+            (int) $this->port,
             $this->service
         );
 
@@ -305,14 +314,15 @@ class AnalyzeBounceMail extends AbstractTask
         try {
             $imapStream = $mailServer->getImapStream();
             return $mailServer;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
 
     /**
      * https://docs.typo3.org/m/typo3/reference-coreapi/main/en-us/ApiOverview/Context/Index.html#example
-     * @TODO
+     *
+     * @todo
      */
     private function getEXEC_TIME()
     {

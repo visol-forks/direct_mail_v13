@@ -11,17 +11,12 @@ class AuthCodeUtility
 {
     /**
      * check if the supplied auth code is identical with the counted authCode
-     *
-     * @param string $submittedAuthCode
-     * @param array $recipientRecord
-     * @param string $authcodeFieldList
-     * @return bool
      */
     public static function validateAuthCode(
         string $submittedAuthCode,
         array $recipientRecord,
-        string $authcodeFieldList = 'uid'): bool
-    {
+        string $authcodeFieldList = 'uid'
+    ): bool {
         if (!empty($submittedAuthCode)) {
             $hmac = self::getHmac($recipientRecord, $authcodeFieldList);
             if ($submittedAuthCode === $hmac) {

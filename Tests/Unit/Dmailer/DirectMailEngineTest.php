@@ -2,6 +2,8 @@
 
 namespace DirectMailTeam\DirectMail\Tests\Unit\Mailer;
 
+use TYPO3\CMS\Core\Tests\UnitTestCase;
+
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -17,10 +19,8 @@ namespace DirectMailTeam\DirectMail\Tests\Unit\Mailer;
 
 /**
  * Testcase for class "DirectMailTeam\DirectMail\Dmailer"
- *
- * @author Bernhard Kraft <kraft@webconsulting.at>
  */
-class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
+class DirectMailEngineTest extends UnitTestCase
 {
     /**
      * @test
@@ -56,7 +56,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
         return [
             'no hyperlinks found' => ['This is a simple test', '', null],
             'no hyperlinks in anchor' => ['This is a <a name="anchor">simple</a> test', '', null],
-            'absolute url' => ['
+            'absolute url' => [
+                '
 				This is a <a name="link" href="http://google.com">simple</a> test',
                 'http://www.server.com/',
                 [
@@ -70,7 +71,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'absolute url (fails currently, #54459)' => ['
+            'absolute url (fails currently, #54459)' => [
+                '
 				This is a <a title="Browse to http://google.com for more information" href="http://google.com">simple</a> test',
                 'http://www.server.com/',
                 [
@@ -84,7 +86,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'relative link #1' => ['
+            'relative link #1' => [
+                '
 				This is a <a name="link" href="fileadmin/simple.pdf">simple</a> test',
                 'http://www.server.com/',
                 [
@@ -98,7 +101,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'relative link #2' => ['
+            'relative link #2' => [
+                '
 				This is a <a name="link" href="fileadmin/simple.pdf">simple</a> test',
                 'http://www.server.com',
                 [
@@ -112,7 +116,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'relative link #3' => ['
+            'relative link #3' => [
+                '
 				This is a <a name="link" href="fileadmin/simple.pdf">simple</a> test',
                 'http://www.server.com/subdirectory/',
                 [
@@ -126,7 +131,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'relative link #4' => ['
+            'relative link #4' => [
+                '
 				This is a <a name="link" href="fileadmin/simple.pdf">simple</a> test',
                 'http://www.server.com/subdirectory',
                 [
@@ -140,7 +146,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'absolute link #1' => ['
+            'absolute link #1' => [
+                '
 				This is a <a name="link" href="/fileadmin/simple.pdf">simple</a> test',
                 'http://www.server.com/subdirectory',
                 [
@@ -154,7 +161,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'absolute link #2' => ['
+            'absolute link #2' => [
+                '
 				This is a <a name="link" href="/fileadmin/simple.pdf">simple</a> test',
                 'http://www.server.com/subdirectory/',
                 [
@@ -168,7 +176,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'absolute link #3 (no_jumpurl)' => ['
+            'absolute link #3 (no_jumpurl)' => [
+                '
 				This is a <a name="link" href="image.png" no_jumpurl="1">simple</a> test',
                 'http://www.server.com/subdirectory',
                 [
@@ -182,7 +191,8 @@ class DirectMailEngineTest extends \TYPO3\CMS\Core\Tests\UnitTestCase
                     ],
                 ],
             ],
-            'form action #1' => ['
+            'form action #1' => [
+                '
 				Hello.<br />
 				Here you can send us your comment<br />
 				<form name="formname" action="index.php?id=123" method="POST" no_jumpurl=1>

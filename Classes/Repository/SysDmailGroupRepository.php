@@ -117,7 +117,6 @@ class SysDmailGroupRepository extends MainRepository
      * @param string $list Comma-separated ID
      * @param array $parsedGroups Groups ID, which is already parsed
      * @param string $perms_clause Permission clause (Where)
-     *
      * @return array the new Group IDs
      */
     public function getMailGroups(string $list, array $parsedGroups, string $permsClause): array
@@ -153,7 +152,7 @@ class SysDmailGroupRepository extends MainRepository
             ->executeQuery();
 
         while ($row = $res->fetchAssociative()) {
-            if ($row['type'] == 4) {
+            if ($row['type'] === 4) {
                 // Other mail group...
                 if (!in_array($row['uid'], $parsedGroups)) {
                     $parsedGroups[] = $row['uid'];
@@ -167,18 +166,13 @@ class SysDmailGroupRepository extends MainRepository
         return $groups;
     }
 
-    /**
-     * @param int $uid
-     * @param array $updateData
-     * @return int
-     */
     public function updateSysDmailGroupRecord(int $uid, array $updateData): int
     {
         $connection = $this->getConnection($this->table);
         return $connection->update(
             $this->table, // table
             $updateData, // value array
-            [ 'uid' => $uid ] // where
+            ['uid' => $uid] // where
         );
     }
 }

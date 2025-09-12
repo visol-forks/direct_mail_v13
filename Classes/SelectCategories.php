@@ -21,8 +21,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Localize categories for backend forms
- *
- * @author		Stanislas Rolland <stanislas.rolland(arobas)fructifor.ca>
  */
 class SelectCategories
 {
@@ -31,7 +29,7 @@ class SelectCategories
      * Referenced by TCA
      * https://docs.typo3.org/m/typo3/reference-tca/12.4/en-us/ColumnsConfig/CommonProperties/ItemsProcFunc.html
      *
-     * @param	array $params Array of searched translation
+     * @param   array $params Array of searched translation
      */
     public function getLocalizedCategories(array &$params): void
     {
@@ -40,21 +38,21 @@ class SelectCategories
 
         $site = $params['site'];
         $languages = $site->getAllLanguages();
-        foreach($languages as $language) {
-            if($language->getLocale()->getLanguageCode() == $lang) {
+        foreach ($languages as $language) {
+            if ($language->getLocale()->getLanguageCode() === $lang) {
                 $sysLanguageUid = $language->getLanguageId();
             }
         }
 
         if (is_array($params['items']) && !empty($params['items'])) {
-            $table = (string)$params['config']['itemsProcFunc_config']['table'];
+            $table = (string) $params['config']['itemsProcFunc_config']['table'];
             $tempRepository = GeneralUtility::makeInstance(TempRepository::class);
             foreach ($params['items'] as $k => $item) {
-                $rows = $tempRepository->selectRowsByUid($table, (int)$item[1]);
+                $rows = $tempRepository->selectRowsByUid($table, (int) $item[1]);
                 if (is_array($rows)) {
                     foreach ($rows as $rowCat) {
                         if ($localizedRowCat = $tempRepository->getRecordOverlay($table, $rowCat, $sysLanguageUid)) {
-                            if(count($localizedRowCat)) {
+                            if (count($localizedRowCat)) {
                                 $params['items'][$k][0] = $localizedRowCat['category'];
                             }
                         }
@@ -68,12 +66,9 @@ class SelectCategories
     {
         //initialize backend user language
         $languageService = $this->getLanguageService();
-        return $languageService->lang == 'default' ? 'en' : $languageService->lang;
+        return $languageService->lang === 'default' ? 'en' : $languageService->lang;
     }
 
-    /**
-     * @return LanguageService
-     */
     protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];

@@ -11,8 +11,8 @@ use DirectMailTeam\DirectMail\Utility\SchedulerUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
-use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
@@ -21,23 +21,19 @@ use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Pagination\ArrayPaginator;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class MailerEngineController extends MainController
 {
-
     protected FlashMessageQueue $flashMessageQueue;
 
     public function __construct(
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly IconFactory $iconFactory,
-
         protected readonly string $moduleName = 'directmail_module_mailerengine',
         protected readonly string $lllFile = 'LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf',
-
         protected ?LanguageService $languageService = null,
-
         protected array $pageinfo = [],
         protected int $id = 0,
         protected int $uid = 0, //for cmd == 'delete'
@@ -57,11 +53,11 @@ final class MailerEngineController extends MainController
         $queryParams = $request->getQueryParams();
         $parsedBody = $request->getParsedBody();
 
-        $this->id = (int)($parsedBody['id'] ?? $queryParams['id'] ?? 0);
-        $this->uid = (int)($parsedBody['uid'] ?? $queryParams['uid'] ?? 0);
-        $this->cmd = (string)($parsedBody['cmd'] ?? $queryParams['cmd'] ?? '');
-        $this->invokeMailerEngine = (bool)($queryParams['invokeMailerEngine'] ?? false);
-        $this->currentPageNumber = (int)($queryParams['currentPageNumber'] ?? 1);
+        $this->id = (int) ($parsedBody['id'] ?? $queryParams['id'] ?? 0);
+        $this->uid = (int) ($parsedBody['uid'] ?? $queryParams['uid'] ?? 0);
+        $this->cmd = (string) ($parsedBody['cmd'] ?? $queryParams['cmd'] ?? '');
+        $this->invokeMailerEngine = (bool) ($queryParams['invokeMailerEngine'] ?? false);
+        $this->currentPageNumber = (int) ($queryParams['currentPageNumber'] ?? 1);
         $this->currentPageNumber = $this->currentPageNumber > 0 ? $this->currentPageNumber : 1;
         $permsClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
         $pageAccess = BackendUtility::readPageAccess($this->id, $permsClause);
@@ -75,16 +71,15 @@ final class MailerEngineController extends MainController
     public function indexAction(ModuleTemplate $view): ResponseInterface
     {
         if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
-
             $module = $this->getModulName();
 
-            if ($module == 'dmail') {
-                if ($this->cmd == 'delete' && $this->uid) {
+            if ($module === 'dmail') {
+                if ($this->cmd === 'delete' && $this->uid) {
                     $this->deleteDMail($this->uid);
                 }
 
                 // Direct mail module
-                if (($this->pageinfo['doktype'] ?? 0) == 254) {
+                if (($this->pageinfo['doktype'] ?? 0) === 254) {
                     $mailerEngine = $this->mailerengine();
 
                     $itemsPerPage = 100; //@TODO
@@ -106,7 +101,7 @@ final class MailerEngineController extends MainController
                                 'keyOfFirstPaginatedItem' => $paginator->getKeyOfFirstPaginatedItem(),
                                 'keyOfLastPaginatedItem' => $paginator->getKeyOfLastPaginatedItem(),
                                 'paginatedItems' => $paginator->getPaginatedItems(),
-                                'links' =>  array_fill(0, $paginator->getNumberOfPages(), '')
+                                'links' => array_fill(0, $paginator->getNumberOfPages(), ''),
                             ],
                             'id' => $this->id,
                             'invoke' => $mailerEngine['invoke'],
@@ -115,7 +110,7 @@ final class MailerEngineController extends MainController
                             'show' => true,
                         ]
                     );
-                } elseif ($this->id != 0) {
+                } elseif ($this->id !== 0) {
                     $message = $this->createFlashMessage(
                         $this->languageService->sL($this->lllFile . ':dmail_noRegular'),
                         $this->languageService->sL($this->lllFile . ':dmail_newsletters'),
@@ -165,7 +160,7 @@ final class MailerEngineController extends MainController
      * Shows the status of the mailer engine.
      * TODO: Should really only show some entries, or provide a browsing interface.
      *
-     * @return array		List of the mailing status
+     * @return array        List of the mailing status
      * @throws RouteNotFoundException If the named route doesn't exist
      */
     protected function mailerengine(): array
@@ -228,7 +223,7 @@ final class MailerEngineController extends MainController
         //@TODO
         if (is_array($countres)) {
             foreach ($countres as $cRow) {
-                $count = (int)$cRow['COUNT(*)'];
+                $count = (int) $cRow['COUNT(*)'];
             }
         }
 
@@ -239,7 +234,6 @@ final class MailerEngineController extends MainController
      * Checks if the record can be deleted
      *
      * @param int $uid Uid of the record
-     * @return bool
      */
     protected function canDelete(int $uid): bool
     {
@@ -266,13 +260,13 @@ final class MailerEngineController extends MainController
      * Invoking the mail engine
      * This method no longer returns logs in backend modul directly
      *
-     * @see		Dmailer::start
-     * @see		Dmailer::runcron
+     * @see     Dmailer::start
+     * @see     Dmailer::runcron
      */
     protected function invokeMEngine(): void
     {
         // TODO: remove htmlmail
-        /* @var $htmlmail \DirectMailTeam\DirectMail\Dmailer */
+        /** @var Dmailer $htmlmail */
         $htmlmail = GeneralUtility::makeInstance(Dmailer::class);
         $htmlmail->setNonCron(true);
         $htmlmail->start();
@@ -284,7 +278,6 @@ final class MailerEngineController extends MainController
      *
      * @param string $str String to be wrapped
      * @param int $uid Uid of the record
-     *
      * @return string wrapped string as a link
      */
     protected function linkDMailRecord(string $str, int $uid): string

@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace DirectMailTeam\DirectMail\Module;
 
-
 use DirectMailTeam\DirectMail\DirectMailUtility;
 use DirectMailTeam\DirectMail\Repository\FeUsersRepository;
 use DirectMailTeam\DirectMail\Repository\SysDmailMaillogRepository;
 use DirectMailTeam\DirectMail\Repository\SysDmailRepository;
 use DirectMailTeam\DirectMail\Repository\TempRepository;
 use DirectMailTeam\DirectMail\Repository\TtAddressRepository;
-use DirectMailTeam\DirectMail\Utility\FetchUtility;
 use DirectMailTeam\DirectMail\Utility\TsUtility;
 use DirectMailTeam\DirectMail\Utility\Typo3ConfVarsUtility;
+use DOMDocument;
+use DOMElement;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Backend\Routing\Exception\RouteNotFoundException;
-use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -41,52 +41,39 @@ final class StatisticsController extends MainController
     public function __construct(
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly IconFactory $iconFactory,
-
         protected readonly string $moduleName = 'directmail_module_statistics',
         protected readonly string $lllFile = 'LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf',
-
         protected ?LanguageService $languageService = null,
-
         protected array $pageinfo = [],
         protected int $id = 0,
         protected int $currentPageNumber = 1,
         protected bool $access = false,
-
         protected string $requestUri = '',
-
         private int $uid = 0,
         private string $table = '',
         private array $tables = ['tt_address', 'fe_users'],
         private bool $recalcCache = false,
         private bool $submit = false,
         private array $indata = [],
-
-        private bool $returnList    = false,
+        private bool $returnList = false,
         private bool $returnDisable = false,
-        private bool $returnCSV     = false,
-
-        private bool $unknownList    = false,
+        private bool $returnCSV = false,
+        private bool $unknownList = false,
         private bool $unknownDisable = false,
-        private bool $unknownCSV     = false,
-
-        private bool $fullList    = false,
+        private bool $unknownCSV = false,
+        private bool $fullList = false,
         private bool $fullDisable = false,
-        private bool $fullCSV     = false,
-
-        private bool $badHostList    = false,
+        private bool $fullCSV = false,
+        private bool $badHostList = false,
         private bool $badHostDisable = false,
-        private bool $badHostCSV     = false,
-
-        private bool $badHeaderList    = false,
+        private bool $badHostCSV = false,
+        private bool $badHeaderList = false,
         private bool $badHeaderDisable = false,
-        private bool $badHeaderCSV     = false,
-
-        private bool $reasonUnknownList    = false,
+        private bool $badHeaderCSV = false,
+        private bool $reasonUnknownList = false,
         private bool $reasonUnknownDisable = false,
-        private bool $reasonUnknownCSV     = false,
-
+        private bool $reasonUnknownCSV = false,
         protected array $implodedParams = [],
-
         private string $siteUrl = ''
     ) {
     }
@@ -100,11 +87,11 @@ final class StatisticsController extends MainController
         $parsedBody = $request->getParsedBody();
         $normalizedParams = $request->getAttribute('normalizedParams');
 
-        $this->id = (int)($parsedBody['id'] ?? $queryParams['id'] ?? 0);
-        $this->cmd            = (string)($parsedBody['cmd']          ?? $queryParams['cmd'] ?? '');
-        $this->sys_dmail_uid  = (int)($parsedBody['sys_dmail_uid']   ?? $queryParams['sys_dmail_uid'] ?? 0);
+        $this->id = (int) ($parsedBody['id'] ?? $queryParams['id'] ?? 0);
+        $this->cmd            = (string) ($parsedBody['cmd'] ?? $queryParams['cmd'] ?? '');
+        $this->sys_dmail_uid  = (int) ($parsedBody['sys_dmail_uid'] ?? $queryParams['sys_dmail_uid'] ?? 0);
 
-        $this->currentPageNumber = (int)($queryParams['currentPageNumber'] ?? 1);
+        $this->currentPageNumber = (int) ($queryParams['currentPageNumber'] ?? 1);
         $this->currentPageNumber = $this->currentPageNumber > 0 ? $this->currentPageNumber : 1;
 
         $permsClause = $this->getBackendUser()->getPagePermsClause(Permission::PAGE_SHOW);
@@ -115,41 +102,41 @@ final class StatisticsController extends MainController
         $this->siteUrl = $normalizedParams->getSiteUrl();
         $this->requestUri = $normalizedParams->getRequestUri();
 
-        $this->uid = (int)($parsedBody['uid'] ?? $queryParams['uid'] ?? 0);
+        $this->uid = (int) ($parsedBody['uid'] ?? $queryParams['uid'] ?? 0);
 
-        $table = (string)($parsedBody['table'] ?? $queryParams['table'] ?? '');
+        $table = (string) ($parsedBody['table'] ?? $queryParams['table'] ?? '');
         if (in_array($table, $this->tables)) {
-            $this->table = (string)($table);
+            $this->table = (string) $table;
         }
 
-        $this->recalcCache = (bool)($parsedBody['recalcCache'] ?? $queryParams['recalcCache'] ?? false);
-        $this->submit = (bool)($parsedBody['submit'] ?? $queryParams['submit'] ?? false);
+        $this->recalcCache = (bool) ($parsedBody['recalcCache'] ?? $queryParams['recalcCache'] ?? false);
+        $this->submit = (bool) ($parsedBody['submit'] ?? $queryParams['submit'] ?? false);
 
         $this->indata = $parsedBody['indata'] ?? $queryParams['indata'] ?? [];
 
-        $this->returnList    = (bool)($parsedBody['returnList'] ?? $queryParams['returnList'] ?? false);
-        $this->returnDisable = (bool)($parsedBody['returnDisable'] ?? $queryParams['returnDisable'] ?? false);
-        $this->returnCSV     = (bool)($parsedBody['returnCSV'] ?? $queryParams['returnCSV'] ?? false);
+        $this->returnList    = (bool) ($parsedBody['returnList'] ?? $queryParams['returnList'] ?? false);
+        $this->returnDisable = (bool) ($parsedBody['returnDisable'] ?? $queryParams['returnDisable'] ?? false);
+        $this->returnCSV     = (bool) ($parsedBody['returnCSV'] ?? $queryParams['returnCSV'] ?? false);
 
-        $this->unknownList    = (bool)($parsedBody['unknownList'] ?? $queryParams['unknownList'] ?? false);
-        $this->unknownDisable = (bool)($parsedBody['unknownDisable'] ?? $queryParams['unknownDisable'] ?? false);
-        $this->unknownCSV     = (bool)($parsedBody['unknownCSV'] ?? $queryParams['unknownCSV'] ?? false);
+        $this->unknownList    = (bool) ($parsedBody['unknownList'] ?? $queryParams['unknownList'] ?? false);
+        $this->unknownDisable = (bool) ($parsedBody['unknownDisable'] ?? $queryParams['unknownDisable'] ?? false);
+        $this->unknownCSV     = (bool) ($parsedBody['unknownCSV'] ?? $queryParams['unknownCSV'] ?? false);
 
-        $this->fullList    = (bool)($parsedBody['fullList'] ?? $queryParams['fullList'] ?? false);
-        $this->fullDisable = (bool)($parsedBody['fullDisable'] ?? $queryParams['fullDisable'] ?? false);
-        $this->fullCSV     = (bool)($parsedBody['fullCSV'] ?? $queryParams['fullCSV'] ?? false);
+        $this->fullList    = (bool) ($parsedBody['fullList'] ?? $queryParams['fullList'] ?? false);
+        $this->fullDisable = (bool) ($parsedBody['fullDisable'] ?? $queryParams['fullDisable'] ?? false);
+        $this->fullCSV     = (bool) ($parsedBody['fullCSV'] ?? $queryParams['fullCSV'] ?? false);
 
-        $this->badHostList    = (bool)($parsedBody['badHostList'] ?? $queryParams['badHostList'] ?? false);
-        $this->badHostDisable = (bool)($parsedBody['badHostDisable'] ?? $queryParams['badHostDisable'] ?? false);
-        $this->badHostCSV     = (bool)($parsedBody['badHostCSV'] ?? $queryParams['badHostCSV'] ?? false);
+        $this->badHostList    = (bool) ($parsedBody['badHostList'] ?? $queryParams['badHostList'] ?? false);
+        $this->badHostDisable = (bool) ($parsedBody['badHostDisable'] ?? $queryParams['badHostDisable'] ?? false);
+        $this->badHostCSV     = (bool) ($parsedBody['badHostCSV'] ?? $queryParams['badHostCSV'] ?? false);
 
-        $this->badHeaderList    = (bool)($parsedBody['badHeaderList'] ?? $queryParams['badHeaderList'] ?? false);
-        $this->badHeaderDisable = (bool)($parsedBody['badHeaderDisable'] ?? $queryParams['badHeaderDisable'] ?? false);
-        $this->badHeaderCSV     = (bool)($parsedBody['badHeaderCSV'] ?? $queryParams['badHeaderCSV'] ?? false);
+        $this->badHeaderList    = (bool) ($parsedBody['badHeaderList'] ?? $queryParams['badHeaderList'] ?? false);
+        $this->badHeaderDisable = (bool) ($parsedBody['badHeaderDisable'] ?? $queryParams['badHeaderDisable'] ?? false);
+        $this->badHeaderCSV     = (bool) ($parsedBody['badHeaderCSV'] ?? $queryParams['badHeaderCSV'] ?? false);
 
-        $this->reasonUnknownList    = (bool)($parsedBody['reasonUnknownList'] ?? $queryParams['reasonUnknownList'] ?? false);
-        $this->reasonUnknownDisable = (bool)($parsedBody['reasonUnknownDisable'] ?? $queryParams['reasonUnknownDisable'] ?? false);
-        $this->reasonUnknownCSV     = (bool)($parsedBody['reasonUnknownCSV'] ?? $queryParams['reasonUnknownCSV'] ?? false);
+        $this->reasonUnknownList    = (bool) ($parsedBody['reasonUnknownList'] ?? $queryParams['reasonUnknownList'] ?? false);
+        $this->reasonUnknownDisable = (bool) ($parsedBody['reasonUnknownDisable'] ?? $queryParams['reasonUnknownDisable'] ?? false);
+        $this->reasonUnknownCSV     = (bool) ($parsedBody['reasonUnknownCSV'] ?? $queryParams['reasonUnknownCSV'] ?? false);
 
         $params = BackendUtility::getPagesTSconfig($this->id)['mod.']['web_modules.']['dmail.'] ?? [];
         $this->implodedParams = GeneralUtility::makeInstance(TsUtility::class)->implodeTSParams($params);
@@ -161,12 +148,11 @@ final class StatisticsController extends MainController
     public function indexAction(ModuleTemplate $view): ResponseInterface
     {
         if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
-
             $module = $this->getModulName();
 
-            if ($module == 'dmail') {
+            if ($module === 'dmail') {
                 // Direct mail module
-                if (($this->pageinfo['doktype'] ?? 0) == 254) {
+                if (($this->pageinfo['doktype'] ?? 0) === 254) {
                     $data = $this->moduleContent();
 
                     $itemsPerPage = 100; //@TODO
@@ -186,14 +172,14 @@ final class StatisticsController extends MainController
                                 'keyOfFirstPaginatedItem' => $paginator->getKeyOfFirstPaginatedItem(),
                                 'keyOfLastPaginatedItem' => $paginator->getKeyOfLastPaginatedItem(),
                                 'paginatedItems' => $paginator->getPaginatedItems(),
-                                'links' =>  array_fill(0, $paginator->getNumberOfPages(), '')
+                                'links' => array_fill(0, $paginator->getNumberOfPages(), ''),
                             ],
                             'id' => $this->id,
                             'moduleName' => $this->moduleName,
                             'show' => true,
                         ]
                     );
-                } elseif ($this->id != 0) {
+                } elseif ($this->id !== 0) {
                     $message = $this->createFlashMessage(
                         $this->languageService->sL($this->lllFile . ':dmail_noRegular'),
                         $this->languageService->sL($this->lllFile . ':dmail_newsletters'),
@@ -338,7 +324,7 @@ final class StatisticsController extends MainController
                     }
                     $data[$this->table][$this->uid]['module_sys_dmail_html'] = $this->indata['html'] ? 1 : 0;
 
-                    /* @var $dataHandler \TYPO3\CMS\Core\DataHandling\DataHandler */
+                    /** @var DataHandler $dataHandler */
                     $dataHandler = $this->getDataHandler();
                     $dataHandler->start($data, []);
                     $dataHandler->process_datamap();
@@ -366,7 +352,7 @@ final class StatisticsController extends MainController
 
             if ($GLOBALS['TCA'][$this->table] ?? false) {
                 $mmTable = $GLOBALS['TCA'][$this->table]['columns']['module_sys_dmail_category']['config']['MM'];
-                $resCat = GeneralUtility::makeInstance(TempRepository::class)->getDisplayUserInfo((string)$mmTable, (int)$row['uid']);
+                $resCat = GeneralUtility::makeInstance(TempRepository::class)->getDisplayUserInfo((string) $mmTable, (int) $row['uid']);
                 if ($resCat && count($resCat)) {
                     foreach ($resCat as $rowCat) {
                         $categories .= $rowCat['uid_foreign'] . ',';
@@ -412,10 +398,6 @@ final class StatisticsController extends MainController
         return $data;
     }
 
-    /**
-     * @param int $mailingId
-     * @return array
-     */
     protected function mailResponsesGeneral(int $mailingId): array
     {
         $table = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogsResponseTypeByMid($mailingId);
@@ -441,24 +423,24 @@ final class StatisticsController extends MainController
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogPingByMid($mailingId);
         $uniquePingResponses = $res[0]['COUNT(*)'];
 
-        $totalSent = (int)(($textHtml['1'] ?? 0) + ($textHtml['2'] ?? 0) + ($textHtml['3'] ?? 0));
-        $htmlSent  = (int)(($textHtml['1'] ?? 0) + ($textHtml['3'] ?? 0));
-        $plainSent = (int)($textHtml['2'] ?? 0);
+        $totalSent = (int) (($textHtml['1'] ?? 0) + ($textHtml['2'] ?? 0) + ($textHtml['3'] ?? 0));
+        $htmlSent  = (int) (($textHtml['1'] ?? 0) + ($textHtml['3'] ?? 0));
+        $plainSent = (int) ($textHtml['2'] ?? 0);
 
         $statTableBody[] = [
             'stats_mails_sent',
             $totalSent,
             $htmlSent,
-            $plainSent
+            $plainSent,
         ];
 
         // show row 'returned' only if entries available
-        if ($table['-127']['counter'] ){
+        if ($table['-127']['counter']) {
             $statTableBody[] = [
                 'stats_mails_returned',
                 $this->showWithPercent($table['-127']['counter'], $totalSent),
                 '',
-                ''
+                '',
             ];
         }
 
@@ -466,20 +448,23 @@ final class StatisticsController extends MainController
             'stats_HTML_mails_viewed',
             '',
             $this->showWithPercent($uniquePingResponses, $htmlSent),
-            ''
+            '',
         ];
 
         $statTableBody[] = [
             'stats_unique_responses',
             $this->showWithPercent($uniqueHtmlResponses + $uniquePlainResponses, $totalSent),
             $this->showWithPercent($uniqueHtmlResponses, $htmlSent),
-            $this->showWithPercent($uniquePlainResponses, $plainSent ? $plainSent : $htmlSent)
+            $this->showWithPercent($uniquePlainResponses, $plainSent ? $plainSent : $htmlSent),
         ];
 
         return [
             'table' => [
                 'head' => [
-                    '', 'stats_total', 'stats_HTML', 'stats_plaintext',
+                    '',
+                    'stats_total',
+                    'stats_HTML',
+                    'stats_plaintext',
                 ],
                 'body' => $statTableBody,
             ],
@@ -496,7 +481,6 @@ final class StatisticsController extends MainController
      * Get statistics from DB and compile them.
      *
      * @param array $row DB record
-     *
      * @return array Statistics of a mail
      * @throws RouteNotFoundException If the named route doesn't exist
      */
@@ -516,7 +500,7 @@ final class StatisticsController extends MainController
         $totalSent = $mailResponsesGeneral['totalSent'];
         $totalProcessed = $mailResponsesGeneral['totalSent'];
         $htmlSent = $mailResponsesGeneral['htmlSent'];
-        $plainSent =  $mailResponsesGeneral['plainSent'];
+        $plainSent = $mailResponsesGeneral['plainSent'];
         $table = $mailResponsesGeneral['db'];
 
         // ******************
@@ -524,7 +508,7 @@ final class StatisticsController extends MainController
         // ******************
 
         // initialize $urlCounter
-        $urlCounter =  [
+        $urlCounter = [
             'total' => [],
             'plain' => [],
             'html' => [],
@@ -553,14 +537,14 @@ final class StatisticsController extends MainController
         }
         if (is_array($unpackedMail['plain']['link_ids'] ?? false)) {
             foreach ($unpackedMail['plain']['link_ids'] as $k => $v) {
-                $urlArr[(int)(-$k)] = $v;
+                $urlArr[(int) (-$k)] = $v;
             }
         }
 
         // Traverse plain urls:
         $mappedPlainUrlsTable = [];
         foreach ($plainUrlsTable as $id => $c) {
-            $url = $urlArr[(int)$id];
+            $url = $urlArr[(int) $id];
             if (isset($urlMd5Map[md5($url)])) {
                 $mappedPlainUrlsTable[$urlMd5Map[md5($url)]] = $c;
             } else {
@@ -583,7 +567,7 @@ final class StatisticsController extends MainController
             // Look up plain url in html urls
             $htmlLinkFound = false;
             foreach ($urlCounter['html'] as $htmlId => $_) {
-                if ($urlArr[$id] == $urlArr[$htmlId]) {
+                if ($urlArr[$id] === $urlArr[$htmlId]) {
                     $urlCounter['html'][$htmlId]['plainId'] = $id;
                     $urlCounter['html'][$htmlId]['plainCounter'] = $c['counter'];
                     $urlCounter['total'][$htmlId]['counter'] = $urlCounter['total'][$htmlId]['counter'] + $c['counter'];
@@ -602,7 +586,10 @@ final class StatisticsController extends MainController
 
         $tables[2] = [
             'head' => [
-                '', 'stats_total', 'stats_HTML', 'stats_plaintext',
+                '',
+                'stats_total',
+                'stats_HTML',
+                'stats_plaintext',
             ],
             'body' => [
                 [
@@ -619,9 +606,9 @@ final class StatisticsController extends MainController
                 ],
                 [
                     'stats_links_clicked_per_respondent',
-                    ($uniqueHtmlResponses + $uniquePlainResponses ? number_format((($table['1']['counter'] ?? 0) + ($table['2']['counter'] ?? 0)) / ($uniqueHtmlResponses+$uniquePlainResponses), 2) : '-'),
-                    ($uniqueHtmlResponses  ? number_format(($table['1']['counter']) / ($uniqueHtmlResponses), 2)  : '-'),
-                    ($uniquePlainResponses ? number_format(($table['2']['counter']) / ($uniquePlainResponses), 2) : '-'),
+                    $uniqueHtmlResponses + $uniquePlainResponses ? number_format((($table['1']['counter'] ?? 0) + ($table['2']['counter'] ?? 0)) / ($uniqueHtmlResponses + $uniquePlainResponses), 2) : '-',
+                    $uniqueHtmlResponses ? number_format(($table['1']['counter']) / $uniqueHtmlResponses, 2) : '-',
+                    $uniquePlainResponses ? number_format(($table['2']['counter']) / $uniquePlainResponses, 2) : '-',
                 ],
             ],
         ];
@@ -631,7 +618,7 @@ final class StatisticsController extends MainController
         reset($urlCounter['total']);
 
         // HTML mails
-        if ((int)($row['sendOptions']) & 0x2) {
+        if ((int) ($row['sendOptions']) & 0x2) {
             $htmlContent = $unpackedMail['html']['content'];
 
             $htmlLinks = [];
@@ -645,7 +632,7 @@ final class StatisticsController extends MainController
             }
 
             // Parse mail body
-            $dom = new \DOMDocument();
+            $dom = new DOMDocument();
             @$dom->loadHTML($htmlContent);
             $links = [];
             // Get all links
@@ -655,8 +642,8 @@ final class StatisticsController extends MainController
 
             // Process all links found
             foreach ($links as $link) {
-                /* @var \DOMElement $link */
-                $url =  $link->getAttribute('href');
+                /** @var DOMElement $link */
+                $url = $link->getAttribute('href');
 
                 if (empty($url)) {
                     // Drop a tags without href
@@ -695,7 +682,7 @@ final class StatisticsController extends MainController
         foreach ($urlCounter['total'] as $id => $_) {
             // $id is the jumpurl ID
             $origId = $id;
-            $id     = abs((int)$id);
+            $id     = abs((int) $id);
             $url    = $htmlLinks[$id]['url'] ? $htmlLinks[$id]['url'] : $urlArr[$origId];
 
             // a link to this host?
@@ -716,12 +703,12 @@ final class StatisticsController extends MainController
                     $img,
                 ];
             } else {
-                $html = (empty($urlCounter['html'][$id]['counter']) ? 0 : 1);
+                $html = empty($urlCounter['html'][$id]['counter']) ? 0 : 1;
                 $tblLines[] = [
                     $label,
-                    ($html ? $id : '-'),
-                    ($html ? '-' : $id),
-                    ($html ? $urlCounter['html'][$id]['counter'] : $urlCounter['plain'][$origId]['counter']),
+                    $html ? $id : '-',
+                    $html ? '-' : $id,
+                    $html ? $urlCounter['html'][$id]['counter'] : $urlCounter['plain'][$origId]['counter'],
                     $urlCounter['html'][$id]['counter'] ?? 0,
                     $urlCounter['plain'][$origId]['counter'] ?? 0,
                     $img,
@@ -741,9 +728,9 @@ final class StatisticsController extends MainController
                 $img = '<a href="' . htmlspecialchars($link) . '" target="_blank">' . $iconAppsToolbarMenuSearch . '</a>';
                 $tblLines[] = [
                     $label,
-                    ($html ? $id : '-'),
-                    ($html ? '-' : abs($id)),
-                    ($html ? $urlCounter['html'][$id]['counter'] : $urlCounter['plain'][$id]['counter']),
+                    $html ? $id : '-',
+                    $html ? '-' : abs($id),
+                    $html ? $urlCounter['html'][$id]['counter'] : $urlCounter['plain'][$id]['counter'],
                     $urlCounter['html'][$id]['counter'],
                     $urlCounter['plain'][$id]['counter'],
                     $img,
@@ -805,13 +792,15 @@ final class StatisticsController extends MainController
 
         $tables[4] = [
             'head' => [
-                '', 'stats_count', '',
+                '',
+                'stats_count',
+                '',
             ],
             'body' => [
                 [
                     'title' => 'stats_total_mails_returned',
-                    'counter' => number_format((int)($table['-127']['counter'] ?? 0)),
-                    'icons' => [// Icons mails returned
+                    'counter' => number_format((int) ($table['-127']['counter'] ?? 0)),
+                    'icons' => [ // Icons mails returned
                         ['getAttr' => 'returnList', 'lang' => 'stats_list_returned', 'icon' => $listIcons],
                         ['getAttr' => 'returnDisable', 'lang' => 'stats_disable_returned', 'icon' => $hideIcons],
                         ['getAttr' => 'returnCSV', 'lang' => 'stats_CSV_returned', 'icon' => $csvIcons],
@@ -819,8 +808,8 @@ final class StatisticsController extends MainController
                 ],
                 [
                     'title' => 'stats_recipient_unknown',
-                    'counter' => $this->showWithPercent(($responseResult['550']['counter'] ?? 0) + ($responseResult['553']['counter'] ?? 0), ($table['-127']['counter'] ?? 0)),
-                    'icons' => [// Icons unknown recip
+                    'counter' => $this->showWithPercent(($responseResult['550']['counter'] ?? 0) + ($responseResult['553']['counter'] ?? 0), $table['-127']['counter'] ?? 0),
+                    'icons' => [ // Icons unknown recip
                         ['getAttr' => 'unknownList', 'lang' => 'stats_list_returned_unknown_recipient', 'icon' => $listIcons],
                         ['getAttr' => 'unknownDisable', 'lang' => 'stats_disable_returned_unknown_recipient', 'icon' => $hideIcons],
                         ['getAttr' => 'unknownCSV', 'lang' => 'stats_CSV_returned_unknown_recipient', 'icon' => $csvIcons],
@@ -828,8 +817,8 @@ final class StatisticsController extends MainController
                 ],
                 [
                     'title' => 'stats_mailbox_full',
-                    'counter' => $this->showWithPercent(($responseResult['551']['counter'] ?? 0), ($table['-127']['counter'] ?? 0)),
-                    'icons' => [// Icons mailbox full
+                    'counter' => $this->showWithPercent($responseResult['551']['counter'] ?? 0, $table['-127']['counter'] ?? 0),
+                    'icons' => [ // Icons mailbox full
                         ['getAttr' => 'fullList', 'lang' => 'stats_list_returned_mailbox_full', 'icon' => $listIcons],
                         ['getAttr' => 'fullDisable', 'lang' => 'stats_disable_returned_mailbox_full', 'icon' => $hideIcons],
                         ['getAttr' => 'fullCSV', 'lang' => 'stats_CSV_returned_mailbox_full', 'icon' => $csvIcons],
@@ -837,8 +826,8 @@ final class StatisticsController extends MainController
                 ],
                 [
                     'title' => 'stats_bad_host',
-                    'counter' => $this->showWithPercent(($responseResult['552']['counter'] ?? 0), ($table['-127']['counter'] ?? 0)),
-                    'icons' => [// Icons bad host
+                    'counter' => $this->showWithPercent($responseResult['552']['counter'] ?? 0, $table['-127']['counter'] ?? 0),
+                    'icons' => [ // Icons bad host
                         ['getAttr' => 'badHostList', 'lang' => 'stats_list_returned_bad_host', 'icon' => $listIcons],
                         ['getAttr' => 'badHostDisable', 'lang' => 'stats_disable_returned_bad_host', 'icon' => $hideIcons],
                         ['getAttr' => 'badHostCSV', 'lang' => 'stats_CSV_returned_bad_host', 'icon' => $csvIcons],
@@ -846,8 +835,8 @@ final class StatisticsController extends MainController
                 ],
                 [
                     'title' => 'stats_error_in_header',
-                    'counter' => $this->showWithPercent(($responseResult['554']['counter'] ?? 0), ($table['-127']['counter'] ?? 0)),
-                    'icons' => [//Icons bad header
+                    'counter' => $this->showWithPercent($responseResult['554']['counter'] ?? 0, $table['-127']['counter'] ?? 0),
+                    'icons' => [ //Icons bad header
                         ['getAttr' => 'badHeaderList', 'lang' => 'stats_list_returned_bad_header', 'icon' => $listIcons],
                         ['getAttr' => 'badHeaderDisable', 'lang' => 'stats_disable_returned_bad_header', 'icon' => $hideIcons],
                         ['getAttr' => 'badHeaderCSV', 'lang' => 'stats_CSV_returned_bad_header', 'icon' => $csvIcons],
@@ -855,8 +844,8 @@ final class StatisticsController extends MainController
                 ],
                 [
                     'title' => 'stats_reason_unkown',
-                    'counter' => $this->showWithPercent(($responseResult['-1']['counter'] ?? 0), ($table['-127']['counter'] ?? 0)),
-                    'icons' => [//Icons unknown reasons @TODO: link to show all reason
+                    'counter' => $this->showWithPercent($responseResult['-1']['counter'] ?? 0, $table['-127']['counter'] ?? 0),
+                    'icons' => [ //Icons unknown reasons @TODO: link to show all reason
                         ['getAttr' => 'reasonUnknownList', 'lang' => 'stats_list_returned_reason_unknown', 'icon' => $listIcons],
                         ['getAttr' => 'reasonUnknownDisable', 'lang' => 'stats_disable_returned_reason_unknown', 'icon' => $hideIcons],
                         ['getAttr' => 'reasonUnknownCSV', 'lang' => 'stats_CSV_returned_reason_unknown', 'icon' => $csvIcons],
@@ -1304,7 +1293,7 @@ final class StatisticsController extends MainController
                 'table.head.details',
             ],
             'counter' => 0,
-            'body' => []
+            'body' => [],
         ];
 
         $mailingId = (int) $row['uid'];
@@ -1324,7 +1313,7 @@ final class StatisticsController extends MainController
 
         foreach ($rows as $row) {
             $unsentCounter += 1;
-            if ($row['html_sent'] == 0) {
+            if ($row['html_sent'] === 0) {
                 $keys = array_keys($setup['id_lists']);
                 $listType = $keys[0] ? $keys[0] : 'unbekannt';
                 $details = '';
@@ -1348,7 +1337,7 @@ final class StatisticsController extends MainController
                     BackendUtility::datetime($row['tstamp']),
                     $row['failed_sending_attempts'],
                     $listType,
-                    $details
+                    $details,
                 ];
             }
         }
@@ -1376,7 +1365,7 @@ final class StatisticsController extends MainController
                 'table.head.response',
             ],
             'counter' => 0,
-            'body' => []
+            'body' => [],
         ];
 
         $mailingId = (int) $row['uid'];
@@ -1395,8 +1384,8 @@ final class StatisticsController extends MainController
 
         foreach ($rows as $row) {
             $returnedCounter += 1;
-            if ($row['html_sent'] == 0) {
-                $returnContent = $row['return_content'] != '' ? unserialize($row['return_content']) : ['content' => ''];
+            if ($row['html_sent'] === 0) {
+                $returnContent = $row['return_content'] !== '' ? unserialize($row['return_content']) : ['content' => ''];
                 $keys = array_keys($setup['id_lists']);
                 $listType = $keys[0] ? $keys[0] : 'unbekannt';
                 if ($listType === 'PLAINLIST') {
@@ -1418,7 +1407,7 @@ final class StatisticsController extends MainController
                     $row['parsetime'],
                     $listType,
                     $details,
-                    $returnDetails
+                    $returnDetails,
                 ];
             }
         }
@@ -1463,8 +1452,6 @@ final class StatisticsController extends MainController
      * get url for dmail record
      *
      * @param int $uid Record uid to be link
-     *
-     * @return UriInterface
      * @throws RouteNotFoundException If the named route doesn't exist
      */
     protected function linkDMailRecord(int $uid): UriInterface
@@ -1499,16 +1486,15 @@ final class StatisticsController extends MainController
      * Show the compact information of a direct mail record
      *
      * @param array $row Direct mail record
-     *
      * @return array The compact infos of the direct mail record
      */
     protected function directMailCompactView(array $row): array
     {
         $dmailInfo = [];
         $fromInfo = [
-            $this->languageService->sL($this->lllFile . ':view_replyto') => htmlspecialchars($row['replyto_name']). '&lt;' . htmlspecialchars($row['replyto_email']) . '&gt;',
+            $this->languageService->sL($this->lllFile . ':view_replyto') => htmlspecialchars($row['replyto_name']) . '&lt;' . htmlspecialchars($row['replyto_email']) . '&gt;',
             $this->languageService->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_tca.xlf:sys_dmail.organisation') => htmlspecialchars($row['organisation']),
-            $this->languageService->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_tca.xlf:sys_dmail.return_path') => htmlspecialchars($row['return_path'])
+            $this->languageService->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_tca.xlf:sys_dmail.return_path') => htmlspecialchars($row['return_path']),
         ];
         $mailInfo = [
             $this->languageService->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_tca.xlf:sys_dmail.priority') => BackendUtility::getProcessedValue('sys_dmail', 'priority', $row['priority']),
@@ -1519,8 +1505,7 @@ final class StatisticsController extends MainController
             'plainParams' => '',
             'HTMLParams' => '',
             'page' => '',
-            'title' => ''
-
+            'title' => '',
         ];
 
         // Render record:
@@ -1536,7 +1521,7 @@ final class StatisticsController extends MainController
                 DirectMailUtility::fName('plainParams') => htmlspecialchars($row['plainParams']),
                 DirectMailUtility::fName('HTMLParams') => htmlspecialchars($row['HTMLParams']),
                 $this->languageService->sL($this->lllFile . ':view_media') => htmlspecialchars(BackendUtility::getProcessedValue('sys_dmail', 'includeMedia', $row['includeMedia'])),
-                $this->languageService->sL($this->lllFile . ':view_flowed') => htmlspecialchars(BackendUtility::getProcessedValue('sys_dmail', 'flowedFormat', $row['flowedFormat']))
+                $this->languageService->sL($this->lllFile . ':view_flowed') => htmlspecialchars(BackendUtility::getProcessedValue('sys_dmail', 'flowedFormat', $row['flowedFormat'])),
             ];
         }
 
@@ -1546,7 +1531,7 @@ final class StatisticsController extends MainController
         $countProcessed = count($res);
         $countSent = $countProcessed - $countUnsent;
 
-        $data = [
+        return [
             'icon'          => $this->iconFactory->getIconForRecord('sys_dmail', $row, IconSize::SMALL)->render(),
             'iconInfo'      => $this->iconFactory->getIcon('actions-document-info', IconSize::SMALL)->render(),
             'subject'       => htmlspecialchars($row['subject']),
@@ -1566,7 +1551,6 @@ final class StatisticsController extends MainController
             'totalUnsent'   => $this->getTable7($row),
             'sentRecip'     => $countSent,
         ];
-        return $data;
     }
 
     /**
@@ -1574,14 +1558,13 @@ final class StatisticsController extends MainController
      *
      * @param int $pieces Number of pieces
      * @param int $total Total of pieces
-     *
      * @return string show number of pieces and the percent
      */
     protected function showWithPercent(int $pieces, int $total): string
     {
         $str = $pieces ? number_format($pieces) : '0';
         if ($total) {
-            $str .= ' / ' . number_format(($pieces/$total*100), 2) . '%';
+            $str .= ' / ' . number_format($pieces / $total * 100, 2) . '%';
         }
         return $str;
     }
@@ -1593,7 +1576,7 @@ final class StatisticsController extends MainController
      */
     protected function makeStatTempTableContent(array $mrow): void
     {
-        $done = GeneralUtility::makeInstance(TempRepository::class)->deleteOldCache((int)$mrow['uid']);
+        $done = GeneralUtility::makeInstance(TempRepository::class)->deleteOldCache((int) $mrow['uid']);
         $rows = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->selectStatTempTableContent($mrow['uid']);
 
         $currentRec = '';
@@ -1603,9 +1586,9 @@ final class StatisticsController extends MainController
             foreach ($rows as $row) {
                 $thisRecPointer = $row['rtbl'] . $row['rid'];
 
-                if ($thisRecPointer != $currentRec) {
+                if ($thisRecPointer !== $currentRec) {
                     $recRec = [
-                        'mid'         => (int)$mrow['uid'],
+                        'mid'         => (int) $mrow['uid'],
                         'rid'         => $row['rid'],
                         'rtbl'        => $row['rtbl'],
                         'pings'       => [],
@@ -1622,8 +1605,8 @@ final class StatisticsController extends MainController
                         $recRec['response'][] = $row['tstamp'];
                         break;
                     case '0':
-                        $recRec['recieved_html'] = $row['html_sent']&1;
-                        $recRec['recieved_plain'] = $row['html_sent']&2;
+                        $recRec['recieved_html'] = $row['html_sent'] & 1;
+                        $recRec['recieved_plain'] = $row['html_sent'] & 2;
                         $recRec['size'] = $row['size'];
                         $recRec['tstamp'] = $row['tstamp'];
                         break;
@@ -1631,19 +1614,19 @@ final class StatisticsController extends MainController
                         // treat html links like plain text
                     case '2':
                         // plain text link response
-                        $recRec[($row['response_type'] == 1 ? 'html_links' : 'plain_links')][] = $row['tstamp'];
+                        $recRec[$row['response_type'] === 1 ? 'html_links' : 'plain_links'][] = $row['tstamp'];
                         $recRec['links'][] = $row['tstamp'];
                         if (!($recRec['firstlink'] ?? '')) {
                             $recRec['firstlink'] = $row['url_id'];
-                            $recRec['firstlink_time'] = (isset($recRec['pings']) && count($recRec['pings']) > 0) ? (int)(max($recRec['pings'])) : 0;
+                            $recRec['firstlink_time'] = isset($recRec['pings']) && count($recRec['pings']) > 0 ? (int) max($recRec['pings']) : 0;
                             $recRec['firstlink_time'] = $recRec['firstlink_time'] ? $row['tstamp'] - $recRec['firstlink_time'] : 0;
                         } elseif (!($recRec['secondlink'] ?? '')) {
                             $recRec['secondlink'] = $row['url_id'];
-                            $recRec['secondlink_time'] = (isset($recRec['pings']) && count($recRec['pings']) > 0) ? (int)(max($recRec['pings'])) : 0;
+                            $recRec['secondlink_time'] = isset($recRec['pings']) && count($recRec['pings']) > 0 ? (int) max($recRec['pings']) : 0;
                             $recRec['secondlink_time'] = $recRec['secondlink_time'] ? $row['tstamp'] - $recRec['secondlink_time'] : 0;
                         } elseif (!($recRec['thirdlink'] ?? '')) {
                             $recRec['thirdlink'] = $row['url_id'];
-                            $recRec['thirdlink_time'] = (isset($recRec['pings']) && count($recRec['pings']) > 0) ? (int)(max($recRec['pings'])) : 0;
+                            $recRec['thirdlink_time'] = isset($recRec['pings']) && count($recRec['pings']) > 0 ? (int) max($recRec['pings']) : 0;
                             $recRec['thirdlink_time'] = $recRec['thirdlink_time'] ? $row['tstamp'] - $recRec['thirdlink_time'] : 0;
                         }
                         $recRec['response'][] = $row['tstamp'];
@@ -1668,31 +1651,31 @@ final class StatisticsController extends MainController
     protected function storeRecRec(array $recRec): void
     {
         if (is_array($recRec)) {
-            $recRec['pings_first'] = empty($recRec['pings']) ? 0 : (int)(@min($recRec['pings']));
-            $recRec['pings_last']  = empty($recRec['pings']) ? 0 : (int)(@max($recRec['pings']));
+            $recRec['pings_first'] = empty($recRec['pings']) ? 0 : (int) @min($recRec['pings']);
+            $recRec['pings_last']  = empty($recRec['pings']) ? 0 : (int) @max($recRec['pings']);
             $recRec['pings'] = count($recRec['pings']);
 
-            $recRec['html_links_first'] = empty($recRec['html_links']) ? 0 : (int)(@min($recRec['html_links']));
-            $recRec['html_links_last']  = empty($recRec['html_links']) ? 0 : (int)(@max($recRec['html_links']));
+            $recRec['html_links_first'] = empty($recRec['html_links']) ? 0 : (int) @min($recRec['html_links']);
+            $recRec['html_links_last']  = empty($recRec['html_links']) ? 0 : (int) @max($recRec['html_links']);
             $recRec['html_links'] = count($recRec['html_links']);
 
-            $recRec['plain_links_first'] = empty($recRec['plain_links']) ? 0 : (int)(@min($recRec['plain_links']));
-            $recRec['plain_links_last']  = empty($recRec['plain_links']) ? 0 : (int)(@max($recRec['plain_links']));
+            $recRec['plain_links_first'] = empty($recRec['plain_links']) ? 0 : (int) @min($recRec['plain_links']);
+            $recRec['plain_links_last']  = empty($recRec['plain_links']) ? 0 : (int) @max($recRec['plain_links']);
             $recRec['plain_links'] = count($recRec['plain_links']);
 
-            $recRec['links_first'] = empty($recRec['links']) ? 0 : (int)(@min($recRec['links']));
-            $recRec['links_last']  = empty($recRec['links']) ? 0 : (int)(@max($recRec['links']));
+            $recRec['links_first'] = empty($recRec['links']) ? 0 : (int) @min($recRec['links']);
+            $recRec['links_last']  = empty($recRec['links']) ? 0 : (int) @max($recRec['links']);
             $recRec['links'] = count($recRec['links']);
 
-            $recRec['response_first'] = DirectMailUtility::intInRangeWrapper((int)((int)(empty($recRec['response']) ? 0 : @min($recRec['response'])) - $recRec['tstamp']), 0);
-            $recRec['response_last']  = DirectMailUtility::intInRangeWrapper((int)((int)(empty($recRec['response']) ? 0 : @max($recRec['response'])) - $recRec['tstamp']), 0);
+            $recRec['response_first'] = DirectMailUtility::intInRangeWrapper((int) ((int) (empty($recRec['response']) ? 0 : @min($recRec['response'])) - $recRec['tstamp']), 0);
+            $recRec['response_last']  = DirectMailUtility::intInRangeWrapper((int) ((int) (empty($recRec['response']) ? 0 : @max($recRec['response'])) - $recRec['tstamp']), 0);
             $recRec['response'] = count($recRec['response']);
 
-            $recRec['time_firstping'] = DirectMailUtility::intInRangeWrapper((int)($recRec['pings_first'] - $recRec['tstamp']), 0);
-            $recRec['time_lastping']  = DirectMailUtility::intInRangeWrapper((int)($recRec['pings_last'] - $recRec['tstamp']), 0);
+            $recRec['time_firstping'] = DirectMailUtility::intInRangeWrapper((int) ($recRec['pings_first'] - $recRec['tstamp']), 0);
+            $recRec['time_lastping']  = DirectMailUtility::intInRangeWrapper((int) ($recRec['pings_last'] - $recRec['tstamp']), 0);
 
-            $recRec['time_first_link'] = DirectMailUtility::intInRangeWrapper((int)($recRec['links_first'] - $recRec['tstamp']), 0);
-            $recRec['time_last_link']  = DirectMailUtility::intInRangeWrapper((int)($recRec['links_last'] - $recRec['tstamp']), 0);
+            $recRec['time_first_link'] = DirectMailUtility::intInRangeWrapper((int) ($recRec['links_first'] - $recRec['tstamp']), 0);
+            $recRec['time_last_link']  = DirectMailUtility::intInRangeWrapper((int) ($recRec['links_last'] - $recRec['tstamp']), 0);
 
             $done = GeneralUtility::makeInstance(TempRepository::class)->insertNewCache($recRec);
         }
@@ -1702,19 +1685,18 @@ final class StatisticsController extends MainController
      * Generates a string for the URL
      *
      * @param array $urlParts The parts of the URL
-     *
      * @return string The URL string
      */
     public function getUrlStr(array $urlParts): string
     {
         $baseUrl = $this->getBaseURL();
-        if (is_array($urlParts) && isset($urlParts['host']) && $this->siteUrl == $urlParts['host']) {
+        if (is_array($urlParts) && isset($urlParts['host']) && $this->siteUrl === $urlParts['host']) {
             $m = [];
             // do we have an id?
             if (preg_match('/(?:^|&)id=([0-9a-z_]+)/', $urlParts['query'], $m)) {
                 $isInt = MathUtility::canBeInterpretedAsInteger($m[1]);
                 if ($isInt) {
-                    $uid = (int)$m[1];
+                    $uid = (int) $m[1];
                 }
 //                @TODO
 //                 else {
@@ -1729,16 +1711,16 @@ final class StatisticsController extends MainController
                 // array_shift reverses the array (rootline has numeric index in the wrong order!)
                 $rootLine = array_reverse($rootLine);
                 $query = preg_replace('/(?:^|&)id=([0-9a-z_]+)/', '', $urlParts['query']);
-                $urlstr = GeneralUtility::fixed_lgd_cs($pages['title'], 50) . GeneralUtility::fixed_lgd_cs(($query ? ' / ' . $query : ''), 20);
+                $urlstr = GeneralUtility::fixed_lgd_cs($pages['title'], 50) . GeneralUtility::fixed_lgd_cs($query ? ' / ' . $query : '', 20);
             } else {
                 $urlstr = $baseUrl . substr($urlParts['path'], 1);
-                $urlstr .= ($urlParts['query'] ?? '')    ? '?' . $urlParts['query']    : '';
-                $urlstr .= ($urlParts['fragment'] ?? '') ? '#' . $urlParts['fragment'] : '';
+                $urlstr .= $urlParts['query'] ?? '' ? '?' . $urlParts['query'] : '';
+                $urlstr .= $urlParts['fragment'] ?? '' ? '#' . $urlParts['fragment'] : '';
             }
         } else {
-            $urlstr =  ((isset($urlParts['host']) && $urlParts['host']) ? $urlParts['scheme'] . '://' . $urlParts['host'] : $baseUrl) . $urlParts['path'];
-            $urlstr .= ($urlParts['query'] ?? '')    ? '?' . $urlParts['query']    : '';
-            $urlstr .= ($urlParts['fragment'] ?? '') ? '#' . $urlParts['fragment'] : '';
+            $urlstr = (isset($urlParts['host']) && $urlParts['host'] ? $urlParts['scheme'] . '://' . $urlParts['host'] : $baseUrl) . $urlParts['path'];
+            $urlstr .= $urlParts['query'] ?? '' ? '?' . $urlParts['query'] : '';
+            $urlstr .= $urlParts['fragment'] ?? '' ? '#' . $urlParts['fragment'] : '';
         }
 
         return $urlstr;
@@ -1771,24 +1753,23 @@ final class StatisticsController extends MainController
      * @param string $urlStr  A processed variant of the url string. This could get appended to the label???
      * @param bool $forceFetch When this parameter is set to true the "fetch and extract <title> tag" method will get used
      * @param string $linkedWord The word to be linked
-     *
      * @return string The label for the passed $url parameter
      */
     public function getLinkLabel(
         string $url,
         string $urlStr,
         bool $forceFetch = false,
-        string $linkedWord = ''): string
-    {
+        string $linkedWord = ''
+    ): string {
         $pathSite = $this->getBaseURL();
         $label = $linkedWord;
         $contentTitle = '';
 
         $urlParts = parse_url($url);
         if (!$forceFetch && (substr($url, 0, strlen($pathSite)) === $pathSite)) {
-            if ($urlParts['fragment'] ?? 0 && (substr($urlParts['fragment'], 0, 1) == 'c')) {
+            if ($urlParts['fragment'] ?? 0 && (substr($urlParts['fragment'], 0, 1) === 'c')) {
                 // linking directly to a content
-                $elementUid = (int)(substr($urlParts['fragment'], 1));
+                $elementUid = (int) substr($urlParts['fragment'], 1);
                 $row = BackendUtility::getRecord('tt_content', $elementUid);
                 if ($row) {
                     $contentTitle = BackendUtility::getRecordTitle('tt_content', $row, false, true);
@@ -1805,12 +1786,12 @@ final class StatisticsController extends MainController
             $contentTitle = $url;
         }
 
-        if ($this->implodedParams['showContentTitle'] == 1) {
+        if ($this->implodedParams['showContentTitle'] === 1) {
             $label = $contentTitle;
         }
 
-        if ($this->implodedParams['prependContentTitle'] == 1) {
-            $label =  $contentTitle . ' (' . $linkedWord . ')';
+        if ($this->implodedParams['prependContentTitle'] === 1) {
+            $label = $contentTitle . ' (' . $linkedWord . ')';
         }
 
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXT']['directmail']['getLinkLabel'] ?? false)) {
@@ -1826,7 +1807,7 @@ final class StatisticsController extends MainController
         }
 
         if (isset($this->implodedParams['maxLabelLength']) && ($this->implodedParams['maxLabelLength'] > 0)) {
-            $label = GeneralUtility::fixed_lgd_cs($label, (int)$this->implodedParams['maxLabelLength']);
+            $label = GeneralUtility::fixed_lgd_cs($label, (int) $this->implodedParams['maxLabelLength']);
         }
 
         return $label;
@@ -1837,7 +1818,6 @@ final class StatisticsController extends MainController
      *
      * @param array $arr DB records
      * @param string $table table name
-     *
      * @return int total of disabled records
      */
     protected function disableRecipients(array $arr, string $table): int
@@ -1855,6 +1835,6 @@ final class StatisticsController extends MainController
                 }
             }
         }
-        return (int)$count;
+        return (int) $count;
     }
 }

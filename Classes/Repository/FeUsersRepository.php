@@ -51,13 +51,13 @@ class FeUsersRepository extends MainRepository
     }
 
         /**
-     * Returns record no matter what - except if record is deleted
-     *
-     * @param int $uid The uid to look up in $table
-     *
-     * @return mixed Returns array (the record) if found, otherwise blank/0 (zero)
-     * @see getPage_noCheck()
-     */
+         * Returns record no matter what - except if record is deleted
+         *
+         * @see getPage_noCheck()
+         *
+         * @param int $uid The uid to look up in $table
+         * @return mixed Returns array (the record) if found, otherwise blank/0 (zero)
+         */
     public function getRawRecord(int $uid) //@TOOD
     {
         if ($uid > 0) {
@@ -86,12 +86,11 @@ class FeUsersRepository extends MainRepository
     }
 
      /**
-     * Return all uid's from 'fe_users' for a static direct mail group.
-     *
-     * @param int $uid The uid of the direct_mail group
-     *
-     * @return array The resulting array of uid's
-     */
+      * Return all uid's from 'fe_users' for a static direct mail group.
+      *
+      * @param int $uid The uid of the direct_mail group
+      * @return array The resulting array of uid's
+      */
     public function getStaticIdList(int $uid): array
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
@@ -164,16 +163,15 @@ class FeUsersRepository extends MainRepository
      * @param array $pidArray The pidArray
      * @param int $groupUid The groupUid.
      * @param int $cat The number of relations from sys_dmail_group to sysmail_categories
-     *
-     * @return	array The resulting array of uid's
+     * @return  array The resulting array of uid's
      */
     public function getIdList(array $pidArray, int $groupUid, int $cat): array
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
 
         // fe user group uid should be in list of fe users list of user groups
-        //		$field = $this->table.'.usergroup';
-        //		$command = $this->table.'.uid';
+        //      $field = $this->table.'.usergroup';
+        //      $command = $this->table.'.uid';
         // This approach, using standard SQL, does not work,
         // even when fe_users.usergroup is defined as varchar(255) instead of tinyblob
         // $usergroupInList = ' AND ('.$field.' LIKE \'%,\'||'.$command.'||\',%\' OR '.$field.' LIKE '.$command.'||\',%\' OR '.$field.' LIKE \'%,\'||'.$command.' OR '.$field.'='.$command.')';

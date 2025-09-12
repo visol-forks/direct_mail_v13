@@ -13,7 +13,6 @@ class DmCsvUtility
      *
      * @param string $str String in csv-format
      * @param string $sep Separator
-     *
      * @return array Parsed csv in an array
      */
     public function getCsvValues(string $str, string $sep = ','): array
@@ -22,7 +21,7 @@ class DmCsvUtility
         fwrite($fh, trim($str));
         fseek($fh, 0);
         $lines = [];
-        if ($sep == 'tab') {
+        if ($sep === 'tab') {
             $sep = "\t";
         }
         while ($data = fgetcsv($fh, 1000, $sep)) {
@@ -38,7 +37,6 @@ class DmCsvUtility
      *
      * @param array $lines CSV lines
      * @param array $fieldList List of the fields
-     *
      * @return array parsed CSV values
      */
     public function rearrangeCsvValues(array $lines, array $fieldListArr): array
@@ -68,7 +66,7 @@ class DmCsvUtility
                 $fName = trim($fName);
                 $fConf = trim($fConf);
                 $fieldOrder[] = [$fName, $fConf];
-                if ($fName && substr($fName, 0, 5) != 'user_' && !in_array($fName, $fieldListArr)) {
+                if ($fName && substr($fName, 0, 5) !== 'user_' && !in_array($fName, $fieldListArr)) {
                     $fieldName = 0;
                     break;
                 }
@@ -98,9 +96,9 @@ class DmCsvUtility
                             if (isset($fN[1])) {
                                 // If is true
                                 if (trim($data[$kk])) {
-                                    if (substr($fN[1], 0, 1) == '=') {
+                                    if (substr($fN[1], 0, 1) === '=') {
                                         $out[$c][$fN[0]] = trim(substr($fN[1], 1));
-                                    } elseif (substr($fN[1], 0, 1) == '+') {
+                                    } elseif (substr($fN[1], 0, 1) === '+') {
                                         $out[$c][$fN[0]] += substr($fN[1], 1);
                                     }
                                 }
