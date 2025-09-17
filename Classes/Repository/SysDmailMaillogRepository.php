@@ -627,7 +627,7 @@ class SysDmailMaillogRepository extends MainRepository
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $queryBuilder->createNamedParameter($logUid, \PDO::PARAM_INT)
+                    $queryBuilder->createNamedParameter($logUid, Connection::PARAM_INT)
                 )
             )
             ->executeStatement();
