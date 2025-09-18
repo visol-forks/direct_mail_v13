@@ -1270,7 +1270,7 @@ final class StatisticsController extends MainController
                 $hookObjectsArr[] = GeneralUtility::makeInstance($classRef);
             }
             //@TODO
-            // assigned $output to class property to make it acesssible inside hook
+            // assigned $output to class property to make it acessible inside hook
             $this->output = $output;
 
             // and clear the former $output to collect hoot return code there
@@ -1572,13 +1572,15 @@ final class StatisticsController extends MainController
     /**
      * Make a percent from the given parameters
      *
-     * @param int $pieces Number of pieces
-     * @param int $total Total of pieces
+     * @param int|null $pieces Number of pieces
+     * @param int|null $total Total of pieces
      *
      * @return string show number of pieces and the percent
      */
-    protected function showWithPercent(int $pieces, int $total): string
+    protected function showWithPercent(?int $pieces, ?int $total): string
     {
+        $pieces = (int)$pieces;
+        $total = (int)$total;
         $str = $pieces ? number_format($pieces) : '0';
         if ($total) {
             $str .= ' / ' . number_format(($pieces/$total*100), 2) . '%';
