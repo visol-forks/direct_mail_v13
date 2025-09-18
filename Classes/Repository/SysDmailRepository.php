@@ -161,7 +161,7 @@ class SysDmailRepository extends MainRepository
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-        // Erste Bedingungsgruppe
+        // first condition group
         $andConditions1 = [
             $queryBuilder->expr()->eq(
                 $this->table . '.pid',
@@ -189,7 +189,7 @@ class SysDmailRepository extends MainRepository
             )
         ];
 
-        // Zweite Bedingungsgruppe
+        // second condition group
         $andConditions2 = [
             $queryBuilder->expr()->eq(
                 $this->table . '.pid',
