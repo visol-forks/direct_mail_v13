@@ -20,44 +20,44 @@ class SysDmailRepository extends MainRepository
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
-        ->getRestrictions()
-        ->removeAll()
-        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-        ->select('*')
-        ->from($this->table)
-        ->where(
-            $queryBuilder->expr()->eq(
-                'pid',
-                $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
-            ),
-            $queryBuilder->expr()->eq(
-                'uid',
-                $queryBuilder->createNamedParameter($sys_dmail_uid, Connection::PARAM_INT)
+            ->select('*')
+            ->from($this->table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($sys_dmail_uid, Connection::PARAM_INT)
+                )
             )
-        )
-        ->executeQuery()
-        ->fetchAssociative();
+            ->executeQuery()
+            ->fetchAssociative();
     }
 
     public function countSysDmailsByPid(int $pid, bool $scheduled) //: array|bool
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
-        ->getRestrictions()
-        ->removeAll()
-        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         $queryBuilder
-        ->selectLiteral('COUNT(uid) AS count')
-        ->from($this->table)
-        ->where(
-            $queryBuilder->expr()->eq(
-                'pid',
-                $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
-            )
-        );
+            ->selectLiteral('COUNT(uid) AS count')
+            ->from($this->table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
+                )
+            );
 
         if ($scheduled) {
             $queryBuilder->andWhere(
@@ -98,27 +98,27 @@ class SysDmailRepository extends MainRepository
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
-        ->getRestrictions()
-        ->removeAll()
-        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-        ->select('uid', 'pid', 'subject', 'scheduled')
-        ->from($this->table)
-        ->where(
-            $queryBuilder->expr()->in(
-                'pid',
-                $queryBuilder->createNamedParameter($pids, Connection::PARAM_INT_ARRAY)
-            ),
-            $queryBuilder->expr()->gt(
-                'scheduled',
-                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            ->select('uid', 'pid', 'subject', 'scheduled')
+            ->from($this->table)
+            ->where(
+                $queryBuilder->expr()->in(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pids, Connection::PARAM_INT_ARRAY)
+                ),
+                $queryBuilder->expr()->gt(
+                    'scheduled',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
             )
-        )
-        ->orderBy('scheduled', 'DESC')
-        ->setMaxResults($limit)
-        ->executeQuery()
-        ->fetchAllAssociative();
+            ->orderBy('scheduled', 'DESC')
+            ->setMaxResults($limit)
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /**
@@ -128,57 +128,41 @@ class SysDmailRepository extends MainRepository
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
-        ->getRestrictions()
-        ->removeAll()
-        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-        ->select('uid', 'pid', 'subject', 'scheduled', 'scheduled_begin', 'scheduled_end')
-        ->from($this->table)
-        ->where(
-            $queryBuilder->expr()->eq(
-                'pid',
-                $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
-            ),
-            $queryBuilder->expr()->gt(
-                'scheduled',
-                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            ->select('uid', 'pid', 'subject', 'scheduled', 'scheduled_begin', 'scheduled_end')
+            ->from($this->table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->gt(
+                    'scheduled',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
             )
-        )
-        ->orderBy('scheduled', 'DESC')
-        ->executeQuery()
-        ->fetchAllAssociative();
+            ->orderBy('scheduled', 'DESC')
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
-     /**
+    /**
      * @return array|bool|null
      */
     public function selectForPageInfo(int $id) //: array|bool|null
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
-        ->getRestrictions()
-        ->removeAll()
-        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-        return $queryBuilder
-        ->selectLiteral($this->table . '.uid',
-                        $this->table . '.subject',
-                        $this->table . '.scheduled',
-                        $this->table . '.scheduled_begin',
-                        $this->table . '.scheduled_end',
-                        'COUNT(' . $this->tableSysDmailMaillog . '.mid) AS count')
-        ->from($this->table, $this->table)
-        ->leftJoin(
-            $this->table,
-            $this->tableSysDmailMaillog,
-            $this->tableSysDmailMaillog,
-            $queryBuilder->expr()->eq(
-                $this->table . '.uid',
-                $queryBuilder->quoteIdentifier($this->tableSysDmailMaillog . '.mid')
-            )
-        )
-        ->where(
+        // Erste Bedingungsgruppe
+        $andConditions1 = [
             $queryBuilder->expr()->eq(
                 $this->table . '.pid',
                 $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
@@ -199,41 +183,62 @@ class SysDmailRepository extends MainRepository
                 $this->tableSysDmailMaillog . '.html_sent',
                 $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
             ),
-            $queryBuilder->or(
-                $queryBuilder->expr()->gt(
-                    $this->tableSysDmailMaillog . '.failed_sending_attempts',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            $queryBuilder->expr()->gt(
+                $this->tableSysDmailMaillog . '.failed_sending_attempts',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            )
+        ];
+
+        // Zweite Bedingungsgruppe
+        $andConditions2 = [
+            $queryBuilder->expr()->eq(
+                $this->table . '.pid',
+                $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
+            ),
+            $queryBuilder->expr()->in(
+                $this->table . '.type',
+                $queryBuilder->createNamedParameter([0, 1], Connection::PARAM_INT_ARRAY)
+            ),
+            $queryBuilder->expr()->eq(
+                $this->table . '.issent',
+                $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)
+            ),
+            $queryBuilder->expr()->eq(
+                $this->tableSysDmailMaillog . '.response_type',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            ),
+            $queryBuilder->expr()->gt(
+                $this->tableSysDmailMaillog . '.failed_sending_attempts',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            )
+        ];
+
+        $queryBuilder
+            ->selectLiteral($this->table . '.uid',
+                $this->table . '.subject',
+                $this->table . '.scheduled',
+                $this->table . '.scheduled_begin',
+                $this->table . '.scheduled_end',
+                'COUNT(' . $this->tableSysDmailMaillog . '.mid) AS count')
+            ->from($this->table, $this->table)
+            ->leftJoin(
+                $this->table,
+                $this->tableSysDmailMaillog,
+                $this->tableSysDmailMaillog,
+                $queryBuilder->expr()->eq(
+                    $this->table . '.uid',
+                    $queryBuilder->quoteIdentifier($this->tableSysDmailMaillog . '.mid')
                 )
             )
-        )->orWhere(
-                $queryBuilder->expr()->eq(
-                    $this->table . '.pid',
-                    $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->in(
-                    $this->table . '.type',
-                    $queryBuilder->createNamedParameter([0, 1], Connection::PARAM_INT_ARRAY)
-                ),
-                $queryBuilder->expr()->eq(
-                    $this->table . '.issent',
-                    $queryBuilder->createNamedParameter(1, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    $this->tableSysDmailMaillog . '.response_type',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $queryBuilder->or(
-                    $queryBuilder->expr()->gt(
-                        $this->tableSysDmailMaillog . '.failed_sending_attempts',
-                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                    )
-                )
-        )
-        ->groupBy($this->tableSysDmailMaillog . '.mid')
-        ->orderBy($this->table . '.scheduled', 'DESC')
-        ->addOrderBy($this->table . '.scheduled_begin', 'DESC')
-        ->executeQuery()
-        ->fetchAllAssociative();
+            ->where(...$andConditions1)
+            ->orWhere(...$andConditions2)
+            ->groupBy($this->tableSysDmailMaillog . '.mid')
+            ->orderBy($this->table . '.scheduled', 'DESC')
+            ->addOrderBy($this->table . '.scheduled_begin', 'DESC');
+
+        return $queryBuilder
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /**
@@ -244,30 +249,30 @@ class SysDmailRepository extends MainRepository
         $queryBuilder = $this->getQueryBuilder($this->table);
 
         $queryBuilder
-        ->getRestrictions()
-        ->removeAll()
-        ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-        ->select('uid', 'pid', 'subject', 'tstamp', 'issent', 'renderedsize', 'attachment', 'type')
-        ->from($this->table)
-        ->where(
-            $queryBuilder->expr()->eq(
-                'pid',
-                $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
-            ),
-            $queryBuilder->expr()->eq(
-                'scheduled',
-                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-            ),
-            $queryBuilder->expr()->eq(
-                'issent',
-                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            ->select('uid', 'pid', 'subject', 'tstamp', 'issent', 'renderedsize', 'attachment', 'type')
+            ->from($this->table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'scheduled',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'issent',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
             )
-        )
-        ->orderBy($sOrder, $ascDesc)
-        ->executeQuery()
-        ->fetchAllAssociative();
+            ->orderBy($sOrder, $ascDesc)
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /**
@@ -278,18 +283,18 @@ class SysDmailRepository extends MainRepository
         $queryBuilder = $this->getQueryBuilder($this->table);
 
         return $queryBuilder
-        ->update($this->table)
-        ->where(
-            $queryBuilder->expr()->eq(
-                'uid',
-                $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)
+            ->update($this->table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)
+                )
             )
-        )
-        ->set('issent', 0)
-        ->set('charset', $charset)
-        ->set('mailContent', $mailContent)
-        ->set('renderedSize', strlen($mailContent))
-        ->executeStatement();
+            ->set('issent', 0)
+            ->set('charset', $charset)
+            ->set('mailContent', $mailContent)
+            ->set('renderedSize', strlen($mailContent))
+            ->executeStatement();
     }
 
     /**
