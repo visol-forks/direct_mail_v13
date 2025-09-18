@@ -111,7 +111,7 @@ final class ImporterController extends MainController
 
     public function indexAction(ModuleTemplate $view): ResponseInterface
     {
-        if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
+        if ($this->access || $this->isAdmin()) {
 
             $module = $this->getModulName();
 

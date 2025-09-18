@@ -192,7 +192,7 @@ final class DmailController extends MainController
         $this->params['pid'] = $this->id;
         $this->cshTable = '_MOD_' . $this->moduleName;
 
-        if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
+        if ($this->access || $this->isAdmin()) {
 
             $module = $this->getModulName();
 
