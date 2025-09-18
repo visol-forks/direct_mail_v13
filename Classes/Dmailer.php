@@ -1096,7 +1096,7 @@ class Dmailer implements LoggerAwareInterface
 
         if (!$this->hasSendingError) {
             try {
-                #throw new \Exception('test');
+                #throw new \Exception('test'); // provoke exception for testing unsent mail
                 $sent = $mailer->send();
                 $this->logger->info('$mailer->send() returns "' . $sent . '" for ' . $recipientRow['email']);
                 // unset the mailer object
