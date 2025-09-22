@@ -158,6 +158,7 @@ class PagesRepository extends MainRepository
                 $queryBuilder->createNamedParameter($modulName)
             )
         )
+        ->orderBy('title')
         ->executeQuery()
         ->fetchAllAssociative();
     }
