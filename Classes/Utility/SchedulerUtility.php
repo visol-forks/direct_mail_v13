@@ -11,6 +11,7 @@ namespace DirectMailTeam\DirectMail\Utility;
  */
 
 use DirectMailTeam\DirectMail\Repository\TempRepository;
+use TYPO3\CMS\Core\Serializer\DenyListDeserializer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\Service\TaskService;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
@@ -26,7 +27,7 @@ class SchedulerUtility
 
     public static function getDMTable(): array
     {
-        $taskSerializer = GeneralUtility::makeInstance(TaskSerializer::class);
+        $taskSerializer = GeneralUtility::makeInstance(TaskSerializer::class, GeneralUtility::makeInstance(DenyListDeserializer::class));
         $registeredClasses = GeneralUtility::makeInstance(TaskService::class)->getAvailableTaskTypes();
 
         $tasks = GeneralUtility::makeInstance(TempRepository::class)->getDMTasks();

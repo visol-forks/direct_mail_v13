@@ -26,6 +26,10 @@ use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Mime\Address;
 use TYPO3\CMS\Core\Charset\CharsetConverter;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Driver\DriverStatement;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -54,6 +58,7 @@ class Dmailer implements LoggerAwareInterface
     protected string $userDmailerLang = 'en';
     protected bool $testmail = false;
     protected string $charset = '';
+    public bool $hasSendingError = false;
 
     /*
      * @var string
@@ -240,6 +245,8 @@ class Dmailer implements LoggerAwareInterface
      */
     public function prepare(array $row): void
     {
+        $this->logger->info('<-- Direct mail start cycle sys_dmail_uid=' . $row['uid'] . ' -->');
+
         if ($row['flowedFormat']) {
             $this->flowedFormat = true;
         }
@@ -248,24 +255,24 @@ class Dmailer implements LoggerAwareInterface
         }
 
         //$this->encoding          = $row['encoding'];
-        $this->theParts          = unserialize(base64_decode($row['mailContent']));
-        $this->messageid         = $this->theParts['messageid'];
-        $this->subject           = $this->ensureCorrectEncoding($row['subject']);
-        $this->fromEmail         = $row['from_email'];
-        $this->fromName          = $this->ensureCorrectEncoding($row['from_name']);
-        $this->replyToEmail      = $row['replyto_email'] ?? '';
-        $this->replyToName       = $this->ensureCorrectEncoding($row['replyto_name']);
-        $this->organisation      = $this->ensureCorrectEncoding($row['organisation']);
-        $this->priority          = DirectMailUtility::intInRangeWrapper((int)$row['priority'], 1, 5);
+        $this->theParts = unserialize(base64_decode($row['mailContent']));
+        $this->messageid = $this->theParts['messageid'];
+        $this->subject = $this->ensureCorrectEncoding($row['subject']);
+        $this->fromEmail = $row['from_email'];
+        $this->fromName = $this->ensureCorrectEncoding($row['from_name']);
+        $this->replyToEmail = $row['replyto_email'] ?? '';
+        $this->replyToName = $this->ensureCorrectEncoding($row['replyto_name']);
+        $this->organisation = $this->ensureCorrectEncoding($row['organisation']);
+        $this->priority = DirectMailUtility::intInRangeWrapper((int)$row['priority'], 1, 5);
         //$this->mailer            = 'TYPO3 Direct Mail module';
         $this->authCodeFieldList = $row['authcode_fieldList'] ?? '' ?: 'uid';
 
-        $this->dmailer['sectionBoundary']    = '<!--DMAILER_SECTION_BOUNDARY';
-        $this->dmailer['html_content']       = $this->theParts['html']['content'] ?? '';
-        $this->dmailer['plain_content']      = $this->theParts['plain']['content'] ?? '';
-        $this->dmailer['messageID']          = $this->theParts['messageid'];
-        $this->dmailer['sys_dmail_uid']      = $row['uid'];
-        $this->dmailer['sys_dmail_rec']      = $row;
+        $this->dmailer['sectionBoundary'] = '<!--DMAILER_SECTION_BOUNDARY';
+        $this->dmailer['html_content'] = $this->theParts['html']['content'] ?? '';
+        $this->dmailer['plain_content'] = $this->theParts['plain']['content'] ?? '';
+        $this->dmailer['messageID'] = $this->theParts['messageid'];
+        $this->dmailer['sys_dmail_uid'] = $row['uid'];
+        $this->dmailer['sys_dmail_rec'] = $row;
         $this->dmailer['boundaryParts_html'] = explode($this->dmailer['sectionBoundary'], '_END-->' . $this->dmailer['html_content']);
 
         foreach ($this->dmailer['boundaryParts_html'] as $bKey => $bContent) {
@@ -293,8 +300,8 @@ class Dmailer implements LoggerAwareInterface
             $this->dmailer['boundaryParts_plain'][$bKey] = explode('-->', $bContent, 2);
         }
 
-        $this->flagHtml     = ($this->theParts['html']['content'] ?? false) ? true : false;
-        $this->flagPlain    = ($this->theParts['plain']['content'] ?? false) ? true : false;
+        $this->flagHtml = ($this->theParts['html']['content'] ?? false) ? true : false;
+        $this->flagPlain = ($this->theParts['plain']['content'] ?? false) ? true : false;
         $this->includeMedia = $row['includeMedia'];
     }
 
@@ -328,7 +335,7 @@ class Dmailer implements LoggerAwareInterface
             $mailMarkersHook =& $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/direct_mail']['res/scripts/class.dmailer.php']['mailMarkersHook'];
             if (is_array($mailMarkersHook)) {
                 $hookParameters = [
-                    'row'     => &$recipRow,
+                    'row' => &$recipRow,
                     'markers' => &$markers,
                 ];
                 $hookReference = &$this;
@@ -343,7 +350,6 @@ class Dmailer implements LoggerAwareInterface
 
         return $this->getMarkerBasedTemplateService()->substituteMarkerArray($content, $markers);
     }
-
     /**
      * Replace the marker with recipient data and then send it
      *
@@ -354,8 +360,10 @@ class Dmailer implements LoggerAwareInterface
      */
     public function sendAdvanced(array $recipientRow, string $tableNameChar): int
     {
+        $this->logger->info('E-mail recipient: ' . $recipientRow['email']);
+
         $returnCode = 0;
-        foreach($recipientRow as $key => $val) {
+        foreach ($recipientRow as $key => $val) {
             $recipientRow[$key] = is_null($val) ? $val : htmlspecialchars($val);
         }
 
@@ -363,17 +371,17 @@ class Dmailer implements LoggerAwareInterface
         // (trailing newline = invalid address)
         $recipientRow['email'] = trim($recipientRow['email']);
 
-        // check if the email valids
+        // set $recipient if email is valid
         if (GeneralUtility::validEmail($recipientRow['email'])) {
-            $midRidId  = 'MID' . $this->dmailer['sys_dmail_uid'] . '_' . $tableNameChar . $recipientRow['uid'];
+            $midRidId = 'MID' . $this->dmailer['sys_dmail_uid'] . '_' . $tableNameChar . $recipientRow['uid'];
 
             $additionalMarkers = [
                 // Put in the tablename of the userinformation
-                '###SYS_TABLE_NAME###'      => $tableNameChar,
+                '###SYS_TABLE_NAME###' => $tableNameChar,
                 // Put in the uid of the mail-record
-                '###SYS_MAIL_ID###'         => $this->dmailer['sys_dmail_uid'],
-                '###SYS_AUTHCODE###'        => AuthCodeUtility::getHmac($recipientRow, $this->authCodeFieldList),
-                 // Put in the unique message id in HTML-code
+                '###SYS_MAIL_ID###' => $this->dmailer['sys_dmail_uid'],
+                '###SYS_AUTHCODE###' => AuthCodeUtility::getHmac($recipientRow, $this->authCodeFieldList),
+                // Put in the unique message id in HTML-code
                 $this->dmailer['messageID'] => md5(microtime()) . '_' . $midRidId,
             ];
             $rowFieldsArray = Typo3ConfVarsUtility::getDMConfigMergedFields();
@@ -391,13 +399,17 @@ class Dmailer implements LoggerAwareInterface
 
             $this->theParts['html']['content'] = '';
             if ($this->flagHtml && (($recipientRow['module_sys_dmail_html'] ?? false) || $tableNameChar == 'P')) {
-                if(!isset($recipientRow['sys_dmail_categories_list'])){
+                if (!isset($recipientRow['sys_dmail_categories_list'])) {
                     $recipientRow['sys_dmail_categories_list'] = '';
                 }
                 $tempContentHTML = $this->getBoundaryParts($this->dmailer['boundaryParts_html'], $recipientRow['sys_dmail_categories_list']);
                 if ($this->mailHasContent) {
                     $this->theParts['html']['content'] = $this->replaceMailMarkers($tempContentHTML, $recipientRow, $additionalMarkers);
                     $returnCode |= 1;
+                    $this->logger->info('Content HTML TRUE: ' . $recipientRow['email'] . ' $returnCode: ' . $returnCode);
+                } else {
+                    $this->logger->warning('Content HTML FALSE: no boundaryParts_html? $tableNameChar: ' . $tableNameChar . ' email: ' . $recipientRow['email'] . ' $returnCode:' . $returnCode);
+                    $this->logger->info('$tempContent_HTML: ' . print_r($this->dmailer['boundaryParts_html'], true));
                 }
             }
 
@@ -416,6 +428,9 @@ class Dmailer implements LoggerAwareInterface
                     }
                     $this->theParts['plain']['content'] = $tempContentPlain;
                     $returnCode |= 2;
+                    $this->logger->info('Content PLAIN TRUE: ' . $recipientRow['email'] . ' $returnCode: ' . $returnCode);
+                } else {
+                    $this->logger->info('Content PLAIN FALSE: $tableNameChar: ' . $tableNameChar . ' email: ' . $recipientRow['email'] . ' $returnCode: ' . $returnCode);
                 }
             }
 
@@ -433,8 +448,22 @@ class Dmailer implements LoggerAwareInterface
                     }
                     $recipientName .= $recipientRow['last_name'] ?? '';
                 }
+
+                if (!GeneralUtility::validEmail($recipientRow['email'])) {
+                    $this->logger->warning('E-mail invalid: ' . $this->dmailer['sys_dmail_rec']['mid'] . '/' . print_r($recipientRow, 1) . $midRidId . ' ' . print_r($recipient, 1));
+                }
+
                 $recipient = $this->createRecipient($recipientRow['email'], $this->ensureCorrectEncoding($recipientName));
-                $this->sendTheMail($recipient, $recipientRow);
+                $logEntryForRecipient = $this->dmailer_getMailLogEntryForRecipient($this->dmailer['sys_dmail_rec']['uid'], $recipientRow['email'], $tableNameChar);
+
+                if ($recipient->getAddress() === '') {
+                    $this->logger->warning('No e-mail for user first:' . $recipientRow['first_name'] . ' - middle: ' . $recipientRow['middle_name'] . ' - last:' . $recipientRow['last_name']);
+                }
+
+                if (!empty($recipient) && $logEntryForRecipient['html_sent'] === 0 || $logEntryForRecipient === false) {
+                    $mailWasSent = $this->sendTheMail($recipient, $recipientRow, $tableNameChar);
+                    $this->logger->info('sendTheMail() returns : ' . $mailWasSent);
+                }
             }
         }
 
@@ -448,7 +477,7 @@ class Dmailer implements LoggerAwareInterface
      */
     public function sendSimple(array $recipients): bool
     {
-        $this->theParts['html']['content']  = ($this->theParts['html']['content'] ?? false) ? $this->getBoundaryParts($this->dmailer['boundaryParts_html'], -1) : '';
+        $this->theParts['html']['content'] = ($this->theParts['html']['content'] ?? false) ? $this->getBoundaryParts($this->dmailer['boundaryParts_html'], -1) : '';
         $this->theParts['plain']['content'] = ($this->theParts['plain']['content'] ?? false) ? $this->getBoundaryParts($this->dmailer['boundaryParts_plain'], -1) : '';
 
         foreach ($recipients as $recipient) {
@@ -467,7 +496,7 @@ class Dmailer implements LoggerAwareInterface
      * @param array $cArray Array of content split by dmail boundary
      * @param mixed $userCategories The list of categories the user is subscribing to.
      *
-     * @return	string		Content of the email, which the recipient subscribed
+     * @return    string        Content of the email, which the recipient subscribed
      */
     protected function getBoundaryParts($cArray, $userCategories): string
     {
@@ -484,7 +513,7 @@ class Dmailer implements LoggerAwareInterface
                 if ($cP[1]) {
                     $this->mailHasContent = true;
                 }
-            } elseif ($key == 'END') {
+            } elseif ($key == 'BEGIN') {
                 $returnVal .= $cP[1];
                 //$this->mediaList .= $cP['mediaList'];
                 // There is content and it is not just the header and footer content,
@@ -514,7 +543,7 @@ class Dmailer implements LoggerAwareInterface
      * @param string $table Tablename of the recipient
      * @param int $uid Uid of the recipient
      *
-     * @return	string		list of categories
+     * @return    string        list of categories
      */
     public function getListOfRecipentCategories(string $table, int $uid): string
     {
@@ -542,9 +571,9 @@ class Dmailer implements LoggerAwareInterface
     /**
      * Mass send to recipient in the list
      *
-     * @param	array $query_info List of recipients' ID in the sys_dmail table
-     * @param	int $mid Directmail ID. UID of the sys_dmail table
-     * @return	bool
+     * @param array $query_info List of recipients' ID in the sys_dmail table
+     * @param int $mid Directmail ID. UID of the sys_dmail table
+     * @return    bool
      */
     protected function masssendList(array $query_info, int $mid): bool
     {
@@ -571,13 +600,30 @@ class Dmailer implements LoggerAwareInterface
                     }
 
                     // Send mails
-                    $sendIds = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->dmailerGetSentMails((int)$mid, $tKey);
+                    try {
+                        $sendIds = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->dmailerGetSentMails((int)$mid, $tKey);
+                    } catch (\Exception $e) {
+                        $this->logger->error('Error in dmailerGetSentMails: ' . $e->getMessage());
+                        $message = '[dmailer_masssend_list] In this mail delivery, there is at least one recipient with 5 failed sending attempts (see Statistics module). This case cannot be handled, therefore exiting the sending process. Try cleaning up manually before sending again.';
+                        $this->sendMailAlert('Fehlversuche Mailing ' . $mid, $message);
+                        $this->hasSendingError = true;
+                        $this->sendPerCycle = 0;
+                        $this->setBeginEnd($this->dmailer['sys_dmail_rec']['uid'], 'end');
+                        $this->logger->critical($message);
+                        die($message);
+                    }
+
+                    $this->logger->info('$sendIds: ' . print_r($sendIds, 1) . ' ');
+                    $this->logger->info('$this->sendPerCycle ' . $this->sendPerCycle . ' ');
+
                     if ($table == 'PLAINLIST') {
                         $sendIdsArr = explode(',', $sendIds);
                         foreach ($listArr as $kval => $recipRow) {
                             $kval++;
                             if (!in_array($kval, $sendIdsArr)) {
                                 if ($c >= $this->sendPerCycle) {
+                                    $this->logger->info('plain - end cycle. next up will be: ' . $recipRow['email'] . ' count:' . $c);
+                                    $this->logger->info('--------------------------------------------');
                                     $returnVal = false;
                                     break;
                                 }
@@ -589,13 +635,18 @@ class Dmailer implements LoggerAwareInterface
                         }
                     } else {
                         $idList = implode(',', $listArr);
+                        $this->logger->info('$idList ' . $table . ': ' . $idList);
                         if ($idList) {
                             $rows = GeneralUtility::makeInstance(TempRepository::class)->selectForMasssendList($table, $idList, ($this->sendPerCycle + 1), $sendIds);
+                            $this->logger->info('rows ' . $table . ': ' . print_r(array_map(function ($v) {
+                                    return $v['email'];
+                                }, $rows), 1));
                             if ($rows && count($rows)) {
                                 foreach ($rows as $recipRow) {
                                     $recipRow['sys_dmail_categories_list'] = $this->getListOfRecipentCategories($table, $recipRow['uid']);
 
                                     if ($c >= $this->sendPerCycle) {
+                                        $this->logger->info('list ' . $mid . ' - end cycle. next up will be: ' . $recipRow['email'] . ' count: ' . $c);
                                         $returnVal = false;
                                         break;
                                     }
@@ -629,46 +680,95 @@ class Dmailer implements LoggerAwareInterface
      */
     protected function shipOfMail(int $mid, array $recipRow, string $tableKey): void
     {
+        /** @var SysDmailMaillogRepository */
         $sysDmailMaillogRepository = GeneralUtility::makeInstance(SysDmailMaillogRepository::class);
         if ($sysDmailMaillogRepository->dmailerIsSend($mid, (int)$recipRow['uid'], $tableKey) === false) {
+
             $parseTimeStart = $this->getMilliseconds();
             $recipRow = $this->convertFields($recipRow);
 
-            /**
-             * @TODO
-             * $this->message is empty!
+            /*
+             * In the patched version, dmail_isSend says it was not sent at all
+             * or not sent successfully. Therefore we perform an additional check
+             * to see if there is already a log entry.
              */
-            // write to dmail_maillog table. if it can be written, continue with sending.
-            // if not, stop the script and report error
-            $logUid = $sysDmailMaillogRepository->dmailerAddToMailLog(
-                $mid,
-                $tableKey . '_' . $recipRow['uid'],
-                strlen($this->message),
-                $this->getMilliseconds() - $parseTimeStart,
-                0,
-                $recipRow['email']
-            );
+            $logEntryForRecipient = $this->dmailer_getMailLogEntryForRecipient($mid, $recipRow['uid'], $tableKey);
 
-            if ($logUid) {
-                $values = [
-                    'logUid' => $logUid,
-                    'html_sent' => (int)$this->sendAdvanced($recipRow, $tableKey),
-                    'parsetime' => $this->getMilliseconds() - $parseTimeStart,
-                    'size' => strlen($this->message)
-                ];
-                $ok = $sysDmailMaillogRepository->updateSysDmailMaillogForShipOfMail($values);
+            // If no log entry was found, we create one
+            if ($logEntryForRecipient === false) {
+                $failedSendingAttempt = 0;
+                $htmlSent = $this->sendAdvanced($recipRow, $tableKey);
 
-                if ($ok === false) {
-                    $message = 'Unable to update Log-Entry in table sys_dmail_maillog. Table full? Mass-Sending stopped. Delete each entries except the entries of active mailings (mid=' . $mid . ')';
+                if ($this->hasSendingError) {
+                    $failedSendingAttempt = 1;
+                    $htmlSent = 0;
+                }
+
+                $this->logger->info('add new log entry: ' . $recipRow['email'] . ': $htmlSent: ' . $htmlSent);
+
+                $newLogUid = $sysDmailMaillogRepository->dmailerAddToMailLog(
+                    $mid,
+                    $tableKey . '_' . $recipRow['uid'],
+                    strlen($this->message),
+                    $this->getMilliseconds() - $parseTimeStart,
+                    $htmlSent,
+                    $recipRow['email'],
+                    $failedSendingAttempt
+                );
+                $this->logger->info('$newLogUid: ' . $newLogUid);
+
+                if ($newLogUid === false) {
+                    $message = 'Unable to create new Log-Entry in table sys_dmail_maillog (mid=' . $mid . ')';
                     $this->logger->critical($message);
+                    $this->sendMailAlert('2. Fehler Log-Update ', $message);
                     die($message);
                 }
-            } else {
-                // stop the script if dummy log can't be made
-                $message = 'Unable to update Log-Entry in table sys_dmail_maillog. Table full? Mass-Sending stopped. Delete each entries except the entries of active mailings (mid=' . $mid . ')';
-                $this->logger->critical($message);
-                die($message);
             }
+            else {
+                // update existing log entry
+                if (is_array($logEntryForRecipient)) {
+                    $htmlSentCode = $this->sendAdvanced($recipRow, $tableKey);
+
+                    try {
+                        $ok = $sysDmailMaillogRepository->updateSysDmailMaillogForShipOfMail(
+                            logUid: $logEntryForRecipient['uid'],
+                            htmlSent: $htmlSentCode,
+                            parseTime: self::getMilliseconds() - $parseTimeStart,
+                            size: strlen($this->message),
+                            failedSendingAttempts: $this->hasSendingError ? $logEntryForRecipient['failed_sending_attempts'] + 1 : $logEntryForRecipient['failed_sending_attempts'],
+                        );
+                    } catch (\Exception $e) {
+                        $ok = false;
+                        $message = $e->getMessage();
+                        $this->logger->critical($message);
+                    }
+
+                    $this->logger->info('Log: ' . $recipRow['email'] . ': update OK? ' . $ok);
+
+                    if ($ok === false) {
+                        $message = 'Unable to update Log-Entry in table sys_dmail_maillog (mid=' . $mid . ').';
+                        $this->logger->critical($message);
+                        $message .= print_r($recipRow, 1);
+                        $this->sendMailAlert('Versand gestoppt. Fehler Log-Update ', $message);
+                        $this->hasSendingError = true;
+                        $this->sendPerCycle = 0;
+                        $this->setBeginEnd($this->dmailer['sys_dmail_rec']['uid'], 'end');
+                        die($message);
+                    }
+                }
+                else {
+                    $message = 'Log-Entry is not array (mid=' . $mid . ').';
+                    $this->logger->critical($message);
+                    $message .= print_r($recipRow, 1);
+                    $this->sendMailAlert('Fehler Log-Update ', $message);
+                    $this->hasSendingError = true;
+                    $this->sendPerCycle = 0;
+                    $this->setBeginEnd($this->dmailer['sys_dmail_rec']['uid'], 'end');
+                }
+                $this->logger->info('$logEntryForRecipient: ' . print_r($logEntryForRecipient, 1));
+            }
+        } else {
+            $this->logger->info('E-mail already sent: ' . $recipRow['email']);
         }
     }
 
@@ -676,7 +776,7 @@ class Dmailer implements LoggerAwareInterface
      * Converting array key.
      * fe_user and tt_address are using different fieldname for the same information
      *
-     * @param array	$recipRow Recipient's data array
+     * @param array $recipRow Recipient's data array
      *
      * @return array Fixed recipient's data array
      */
@@ -763,14 +863,14 @@ class Dmailer implements LoggerAwareInterface
         }
 
         $row = GeneralUtility::makeInstance(SysDmailRepository::class)->selectForRuncron();
-        $this->logger->debug($this->getLanguageService()->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf:dmailer_invoked_at') . ' ' . date('h:i:s d-m-Y'));
+        $this->logger->info($this->getLanguageService()->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf:dmailer_invoked_at') . ' ' . date('h:i:s d-m-Y'));
 
         if (is_array($row)) {
             $this->logger->debug(
                 $this->getLanguageService()->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf:dmailer_sys_dmail_record') . ' ' . $row['uid'] . ', \'' . $row['subject'] . '\'' . $this->getLanguageService()->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf:dmailer_processed')
             );
-            $this->prepare($row);
             $query_info = unserialize($row['query_info']);
+            $this->prepare($row);
 
             if (!$row['scheduled_begin']) {
                 // Hook to alter the list of recipients
@@ -778,7 +878,7 @@ class Dmailer implements LoggerAwareInterface
                     $queryInfoHook =& $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/direct_mail']['res/scripts/class.dmailer.php']['queryInfoHook'];
                     if (is_array($queryInfoHook)) {
                         $hookParameters = [
-                            'row'    => $row,
+                            'row' => $row,
                             'query_info' => &$query_info,
                         ];
                         $hookReference = &$this;
@@ -789,11 +889,15 @@ class Dmailer implements LoggerAwareInterface
                 }
                 $this->setBeginEnd((int)$row['uid'], 'begin');
             }
+            $this->logger->info('cron() call with mailing ' . $row['uid'] . ': ' . $row['subject'] . ' ');
 
             $finished = $this->masssendList($query_info, $row['uid']);
 
-            if ($finished) {
+            if ($finished && !$this->hasSendingError) {
+                // We only mark the mailing as finished if there were no errors
+                // If there were errors, failed recipients are retried in the next run
                 $this->setBeginEnd((int)$row['uid'], 'end');
+                $this->logger->info('mass send finished without exceptions.');
             }
         } else {
             $this->logger->debug($this->getLanguageService()->sL('LLL:EXT:direct_mail/Resources/Private/Language/locallang_mod2-6.xlf:dmailer_nothing_to_do'));
@@ -878,7 +982,42 @@ class Dmailer implements LoggerAwareInterface
         }
     }
 
-    protected function sendTheMail(Address $recipient, array $recipientRow = null): void
+    /**
+     * If available, get the existing mail log entry for a recipient
+     *
+     * @param int $mailId Newsletter ID. UID of the sys_dmail record
+     * @param string $recipientEmail Recipient email
+     * @param string $recipientTable Recipient table
+     *
+     * @return array|false|null
+     */
+    protected function dmailer_getMailLogEntryForRecipient(int $mailId, string $recipientEmail, string $recipientTable): false|array|null
+    {
+        $tableName = 'sys_dmail_maillog';
+        $queryBuilder = $this->getQueryBuilder($tableName);
+        $queryBuilder->select('uid', 'mid', 'html_sent', 'email', 'failed_sending_attempts')
+            ->from($tableName)
+            ->where($queryBuilder->expr()->eq('email', $queryBuilder->createNamedParameter($recipientEmail, Connection::PARAM_STR)))
+            ->andWhere($queryBuilder->expr()->eq('mid', $queryBuilder->createNamedParameter($mailId, Connection::PARAM_INT)))
+            ->andWhere($queryBuilder->expr()->eq('response_type', '0'));
+        return $queryBuilder->fetchAssociative();
+    }
+
+    public function sendMailAlert(string $subject, string $message): void
+    {
+        $subjectDefault = 'Fehler bei Versand von DirectMail: ' . $this->subject;
+        $subject = $subject ? $subject . ' ' . $subjectDefault : $subjectDefault;
+        $replyToAddress = $this->dmailer['sys_dmail_rec']['replyto_email'];
+        $mailer = GeneralUtility::makeInstance(MailMessage::class);
+        $mailer
+            ->from(new Address($this->fromEmail, 'DirectMail'))
+            ->to(new Address($replyToAddress, 'Unilu Newsletter Editor'))
+            ->subject($subject)
+            ->text($message);
+        $mailer->send();
+    }
+
+    protected function sendTheMail(Address $recipient, array $recipientRow = null, string $tableNameChar = ''): bool
     {
         /** @var MailMessage $mailer */
         $mailer = GeneralUtility::makeInstance(MailMessage::class);
@@ -899,7 +1038,23 @@ class Dmailer implements LoggerAwareInterface
         }
 
         // TODO: setContent should set the images (includeMedia) or add attachment
-        $this->setContent($mailer);
+        try {
+            $this->setContent($mailer);
+        } catch (\Exception $e) {
+            // may occur upon missing images
+            // stop sending and send alert mail
+            $this->hasSendingError = true;
+            $this->sendPerCycle = 0;
+            $this->setBeginEnd($this->dmailer['sys_dmail_rec']['uid'], 'end');
+            $message = 'Sending stopped at address: ' . $recipientRow['uid'] . "\n";
+            $message .= $recipientRow['email'] . "\n";
+            $message .= $e->getMessage();
+            $this->sendMailAlert('DirectMail Error', $message);
+            $this->logger->warning('setContent() failed: ' . $e->getMessage());
+            $this->logFailedAttempt($recipientRow, $tableNameChar);
+            #unset($mailer);
+            return false;
+        }
 
         // setting additional header
         // organization and TYPO3MID
@@ -917,7 +1072,7 @@ class Dmailer implements LoggerAwareInterface
             $mailHeadersHook =& $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/direct_mail']['res/scripts/class.dmailer.php']['mailHeadersHook'];
             if (is_array($mailHeadersHook)) {
                 $hookParameters = [
-                    'row'    => &$recipientRow,
+                    'row' => &$recipientRow,
                     'header' => &$header,
                 ];
                 $hookReference = &$this;
@@ -927,7 +1082,89 @@ class Dmailer implements LoggerAwareInterface
             }
         }
 
-        $mailer->send();
+        if (is_array($recipient)) {
+            $email = implode(',', $recipient);
+            $emailList = $email;
+        } else {
+            $email = $recipient;
+            if ($email instanceof Address) {
+                $emailList = $email->getAddress();
+            } else {
+                $emailList = $email;
+            }
+        }
+
+        if (!$this->hasSendingError) {
+            try {
+                #throw new \Exception('test'); // provoke exception for testing unsent mail
+                $sent = $mailer->send();
+                $this->logger->info('$mailer->send() returns "' . $sent . '" for ' . $recipientRow['email']);
+                // unset the mailer object
+                unset($mailer);
+                // Delete temporary files
+                // see setContent, where temp images are downloaded
+                if (!empty($this->tempFileList)) {
+                    foreach ($this->tempFileList as $tempFile) {
+                        if (file_exists($tempFile)) {
+                            unlink($tempFile);
+                        }
+                    }
+                }
+                return true;
+            } catch (\Exception $e) {
+                $this->hasSendingError = true;
+                $this->logger->info('$mailer->send() Exception "' . $recipientRow['email']);
+                $message = sprintf('E-mail could not be sent to %s: %s (%s)', $emailList, $e->getMessage(), $e->getCode());
+                $this->logger->warning($message);
+                // The actual logging to the maillog will be done in shipOfMail()
+                $this->sendMailAlert('DirectMail Error', $message);
+                return false;
+            }
+        }
+    }
+
+    public function logFailedAttempt($recipRow = null, $tableNameChar = ''): bool
+    {
+        $sysDmailMaillogRepository = GeneralUtility::makeInstance(SysDmailMaillogRepository::class);
+        $pt = self::getMilliseconds();
+        $mid = $this->dmailer['sys_dmail_rec']['uid'];
+        $this->logger->info('logFailedAttempt row ' . print_r($recipRow,1) );
+        $this->logger->info('mid ' . $mid);
+        // todo: don't allow null
+        if (!$recipRow['uid']) {
+            $this->logger->info('$recipRow missing ' . print_r($recipRow['uid'],1) );
+            return false;
+        }
+        $logEntryForRecipient = $this->dmailer_getMailLogEntryForRecipient($mid, $recipRow['email'], $tableNameChar);
+
+        if (!is_array($logEntryForRecipient)) {
+            $logUid = $sysDmailMaillogRepository->dmailerAddToMailLog(
+                $mid,
+                $tableNameChar . '_' . $recipRow['uid'],
+                strlen($this->message),
+                $this->getMilliseconds() - $pt,
+                0,
+                $recipRow['email'],
+                1
+            );
+            $this->logger->info('logFailedAttempt: insert failed attempt log entry ' . $logUid . ' for ' . $recipRow['email']);
+        } else {
+            // Log failed attempts
+            $tableName = 'sys_dmail_maillog';
+            /** @var Connection $connection */
+            $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable($tableName);
+
+            $statementUpdate = $connection->prepare(
+                sprintf(
+                    'UPDATE sys_dmail_maillog SET failed_sending_attempts = failed_sending_attempts + 1 WHERE rid=%d AND mid=%d',
+                    $recipRow['uid'],
+                    $mid
+                )
+            );
+            $result = $statementUpdate->executeStatement();
+            $this->logger->info('logFailedAttempt: update ' . $result . ' rows');
+        }
+        return false;
     }
 
     /**
@@ -1470,5 +1707,20 @@ class Dmailer implements LoggerAwareInterface
     protected function getMilliseconds(): int
     {
         return round(microtime(true) * 1000);
+    }
+
+    protected function getConnectionPool(): ConnectionPool
+    {
+        return GeneralUtility::makeInstance(ConnectionPool::class);
+    }
+
+    protected function getConnection(string $table): Connection
+    {
+        return $this->getConnectionPool()->getConnectionForTable($table);
+    }
+
+    protected function getQueryBuilder(string $table): QueryBuilder
+    {
+        return $this->getConnectionPool()->getQueryBuilderForTable($table);
     }
 }

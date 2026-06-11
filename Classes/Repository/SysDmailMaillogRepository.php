@@ -613,20 +613,21 @@ class SysDmailMaillogRepository extends MainRepository
         return (int)$existingLog > 0;
     }
 
-    public function updateSysDmailMaillogForShipOfMail(array $values)
+    public function updateSysDmailMaillogForShipOfMail(int $logUid, int $htmlSent, int $parseTime, int $size, int $failedSendingAttempts)
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
 
         return $queryBuilder
             ->update($this->table)
             ->set('tstamp', time())
-            ->set('size', (int)$values['size'])
-            ->set('parsetime', (int)$values['parsetime'])
-            ->set('html_sent', (int)$values['html_sent'])
+            ->set('size', $size)
+            ->set('parsetime', $parseTime)
+            ->set('html_sent', $htmlSent)
+            ->set('failed_sending_attempts', $failedSendingAttempts)
             ->where(
                 $queryBuilder->expr()->eq(
                     'uid',
-                    $queryBuilder->createNamedParameter($values['logUid'], Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($logUid, Connection::PARAM_INT)
                 )
             )
             ->executeStatement();
@@ -672,6 +673,12 @@ class SysDmailMaillogRepository extends MainRepository
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                 )
             )
+            ->andWhere(
+                $queryBuilder->expr()->gt(
+                    'html_sent',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            )
             ->executeQuery();
 
         return (bool)$statement->rowCount();
@@ -686,10 +693,11 @@ class SysDmailMaillogRepository extends MainRepository
      * @param int $parsetime Parse time of the email
      * @param int $html Set if HTML email is sent
      * @param string $email Recipient's email
+     * @param int $attempt number of sending attempts
      *
      * @return int True on success or False on error
      */
-    public function dmailerAddToMailLog(int $mid, string $rid, int $size, int $parsetime, int $html, string $email): int
+    public function dmailerAddToMailLog(int $mid, string $rid, int $size, int $parsetime, int $html, string $email, int $attempt): int
     {
         [$rtbl, $rid] = explode('_', $rid);
 
@@ -706,6 +714,7 @@ class SysDmailMaillogRepository extends MainRepository
                 'size' => $size,
                 'parsetime' => $parsetime,
                 'html_sent' => $html,
+                'failed_sending_attempts' => $attempt,
             ])
             ->executeStatement();
 
@@ -747,6 +756,24 @@ class SysDmailMaillogRepository extends MainRepository
     public function dmailerGetSentMails(int $mid, string $rtbl): string
     {
         $queryBuilder = $this->getQueryBuilder($this->table);
+        $numberOfLogEntriesWithMoreThan5FailedAttempts = $queryBuilder->count('*')
+            ->from($this->table)
+            ->where($queryBuilder->expr()->eq('mid', $queryBuilder->createNamedParameter($mid, Connection::PARAM_INT)))
+            ->andWhere($queryBuilder->expr()->eq('rtbl', $queryBuilder->createNamedParameter($rtbl)))
+            ->andWhere($queryBuilder->expr()->eq('response_type', '0'))
+            ->andWhere($queryBuilder->expr()->eq('html_sent', '0'))
+            ->andWhere($queryBuilder->expr()->gte('failed_sending_attempts', '5'))
+            ->executeQuery()
+            ->fetchOne();
+
+        if ($numberOfLogEntriesWithMoreThan5FailedAttempts > 0) {
+            throw new \Exception(
+                'In this mail delivery for mid ' . $mid . ' , there is at least one recipient with 5 failed sending attempts (see Statistics module). This case cannot be handled, therefore exiting the sending process. Try cleaning up manually before sending again.',
+                1650837797
+            );
+        }
+
+        $queryBuilder = $this->getQueryBuilder($this->table);
         $statement = $queryBuilder
             ->select('rid')
             ->from($this->table)
@@ -765,6 +792,12 @@ class SysDmailMaillogRepository extends MainRepository
             ->andWhere(
                 $queryBuilder->expr()->eq(
                     'response_type',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->gt(
+                    'html_sent',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                 )
             )

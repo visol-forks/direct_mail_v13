@@ -398,6 +398,8 @@ class MainController
         $out = [];
         $c = 0;
         foreach ($plainMails as $v) {
+            # strip nonbreakspace chars
+            $v = preg_replace('/ /','',$v);
             $out[$c]['email'] = trim($v);
             $out[$c]['name'] = '';
             $c++;

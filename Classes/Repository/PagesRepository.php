@@ -18,7 +18,7 @@ class PagesRepository extends MainRepository
         // Here the list of subpages, news, is rendered
         $queryBuilder = $this->getQueryBuilder($this->table);
         $queryBuilder
-        ->select('uid', 'doktype', 'title', 'abstract')
+        ->select('*')
         ->from($this->table)
         ->where(
             $queryBuilder->expr()->eq(
@@ -158,6 +158,7 @@ class PagesRepository extends MainRepository
                 $queryBuilder->createNamedParameter($modulName)
             )
         )
+        ->orderBy('title')
         ->executeQuery()
         ->fetchAllAssociative();
     }

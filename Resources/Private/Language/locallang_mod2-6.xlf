@@ -977,8 +977,17 @@
 			<trans-unit id="view_media" resname="view_media">
 				<source>Include media:</source>
 			</trans-unit>
-			<trans-unit id="view_recipient_total_sent" resname="view_recipient_total_sent">
-				<source>Recipient total/sent:</source>
+			<trans-unit id="view_recipient_total" resname="view_recipient_total">
+				<source>Recipient total:</source>
+			</trans-unit>
+			<trans-unit id="view_recipient_total_sent" resname="view_recipient_sent">
+				<source>Recipient sent:</source>
+			</trans-unit>
+			<trans-unit id="view_recipient_total_processed" resname="view_recipient_total_processed">
+				<source>Recipient Processed:</source>
+			</trans-unit>
+			<trans-unit id="view_recipient_total_unprocessed" approved="yes">
+				<source>Recipient unprocessed</source>
 			</trans-unit>
 			<trans-unit id="view_replyto" resname="view_replyto">
 				<source>Reply:</source>
@@ -1022,6 +1031,12 @@
 			<trans-unit id="scheduler.bounceMail.csh.maxProcessed" resname="scheduler.bounceMail.csh.maxProcessed">
 				<source>Maximum number of bounce mail to be processed on one scheduler cycle</source>
 			</trans-unit>
+			<trans-unit id="scheduler.bounceMail.keepMailsOnServer">
+				<source>Keep mails on server after processing</source>
+			</trans-unit>
+			<trans-unit id="scheduler.bounceMail.csh.keepMailsOnServer">
+				<source>Useful for testing purposes or in non-production environments</source>
+			</trans-unit>
 			<trans-unit id="scheduler.bounceMail.dataVerification" resname="scheduler.bounceMail.dataVerification">
 				<source><![CDATA[Connection using the given data is failed. Error message: ]]></source>
 			</trans-unit>
@@ -1037,8 +1052,47 @@
 			<trans-unit id="mod.no_access" resname="mod.no_access">
 				<source>no access</source>
 			</trans-unit>
-			<trans-unit id="mod.no_recipients" resname="mod.no_recipients">
-				<source>no recipients</source>
+			<trans-unit id="table.not_counted">
+				<source>Nicht gezählte (mutmasslich nicht versendete)</source>
+			</trans-unit>
+			<trans-unit id="table.not_counted_text">
+				<source>Mutmasslich nicht gesendete</source>
+			</trans-unit>
+			<trans-unit id="table.returns">
+				<source>Returns</source>
+			</trans-unit>
+			<trans-unit id="table.email_back">
+				<source>Zurückgekommene</source>
+			</trans-unit>
+			<trans-unit id="table.head.email">
+				<source>E-Mail</source>
+			</trans-unit>
+			<trans-unit id="table.head.mid">
+				<source>mid</source>
+			</trans-unit>
+			<trans-unit id="table.head.rid">
+				<source>rid</source>
+			</trans-unit>
+			<trans-unit id="table.head.html_sent">
+				<source>html_sent</source>
+			</trans-unit>
+			<trans-unit id="table.head.timestamp">
+				<source>Timestamp</source>
+			</trans-unit>
+			<trans-unit id="table.head.attempts">
+				<source># Versuche</source>
+			</trans-unit>
+			<trans-unit id="table.head.parsetime">
+				<source>Parsetime</source>
+			</trans-unit>
+			<trans-unit id="table.head.receiptList">
+				<source>Empfängerliste</source>
+			</trans-unit>
+			<trans-unit id="table.head.details">
+				<source>Details</source>
+			</trans-unit>
+			<trans-unit id="table.head.response">
+				<source>Antwort</source>
 			</trans-unit>
 			<trans-unit id="mod.configuration.saved" resname="mod.configuration.saved">
 				<source>The configuration were saved.</source>

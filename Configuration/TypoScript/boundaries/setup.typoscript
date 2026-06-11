@@ -22,8 +22,8 @@ config.insertDmailerBoundaries = 1
 
 //boundaries for the sitemap
 tt_content.menu.20.3.renderObj {
-	outerWrap.cObject = USER
-	outerWrap.cObject {
-		userFunc = DirectMailTeam\DirectMail\Container->insertSitemapBoundaries
-	}
+  outerWrap.cObject = USER
+  outerWrap.cObject {
+    userFunc = DirectMailTeam\DirectMail\Container->insertSitemapBoundaries
+  }
 }

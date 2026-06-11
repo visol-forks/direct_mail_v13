@@ -2,15 +2,18 @@
 
 declare(strict_types=1);
 
+use Psr\Log\LogLevel;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Log\Writer\FileWriter;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 defined('TYPO3') || die();
 
 // https://docs.typo3.org/m/typo3/reference-coreapi/12.4/en-us/ExtensionArchitecture/BestPractises/ConfigurationFiles.html
-(function () {
-    // Register hook for simulating a user group
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['hook_checkEnableFields']['direct_mail'] = 'DirectMailTeam\\DirectMail\\Hooks\\TypoScriptFrontendController->simulateUsergroup';
-
+(static function () {
     // Get extension configuration so we can use it here:
-    $extConf = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Configuration\ExtensionConfiguration::class)->get('direct_mail');
+    $extConf = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('direct_mail');
 
     /**
      * Language of the cron task:
@@ -84,4 +87,15 @@ defined('TYPO3') || die();
 
     // https://docs.typo3.org/c/typo3/cms-core/main/en-us/Changelog/12.3/Feature-100232-LoadAdditionalStylesheetsInTYPO3Backend.html
     $GLOBALS['TYPO3_CONF_VARS']['BE']['stylesheets']['direct_mail'] = 'EXT:direct_mail/Resources/Public/StyleSheets/';
+
+    $GLOBALS['TYPO3_CONF_VARS']['LOG']['DirectMailTeam']['DirectMail']['Dmailer']['writerConfiguration'] = [
+        LogLevel::INFO => [
+            FileWriter::class => [
+                'logFile' => Environment::getVarPath() . '/log/dmail.log',
+            ],
+        ],
+    ];
+
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
+        = \DirectMailTeam\DirectMail\Hooks\DataHandlerHook::class;
 })();

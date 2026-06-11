@@ -77,7 +77,7 @@ final class ConfigurationController extends MainController
     {
         // Load JavaScript via PageRenderer
         $this->pageRenderer->loadJavaScriptModule('@directmailteam/diractmail/Configuration.js');
-        if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
+        if ($this->access || $this->isAdmin()) {
 
             $module = $this->getModulName();
 

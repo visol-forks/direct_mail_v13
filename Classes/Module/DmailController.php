@@ -179,7 +179,7 @@ final class DmailController extends MainController
         $this->set = is_array($parsedBody['SET'] ?? '') ? $parsedBody['SET'] : [];
 
         if ($this->updatePageTree) {
-            \TYPO3\CMS\Backend\Utility\BackendUtility::setUpdateSignal('updatePageTree');
+            BackendUtility::setUpdateSignal('updatePageTree');
         }
 
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
@@ -192,7 +192,7 @@ final class DmailController extends MainController
         $this->params['pid'] = $this->id;
         $this->cshTable = '_MOD_' . $this->moduleName;
 
-        if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
+        if ($this->access || $this->isAdmin()) {
 
             $module = $this->getModulName();
 
@@ -691,10 +691,12 @@ final class DmailController extends MainController
                     'returnUrl' => $this->requestUri,
                 ];
 
+                $title = isset($row['issue_date']) ? date('d.m.Y', $row['issue_date']) . ' - ' . $row['title'] : $row['title'];
+
                 $data[] = [
                     'id' => $row['uid'],
                     'pageIcon' => $this->iconFactory->getIconForRecord('pages', $row, IconSize::SMALL),
-                    'title' => htmlspecialchars($row['title']),
+                    'title' => htmlspecialchars($title),
                     'createDmailLink' => $createDmailLink,
                     'createLink' => $createLink,
                     'editOnClickLink' => $this->getEditOnClickLink($params),

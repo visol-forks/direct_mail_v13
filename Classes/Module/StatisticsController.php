@@ -160,7 +160,7 @@ final class StatisticsController extends MainController
 
     public function indexAction(ModuleTemplate $view): ResponseInterface
     {
-        if (($this->id && $this->access) || ($this->isAdmin() && !$this->id)) {
+        if ($this->access || $this->isAdmin()) {
 
             $module = $this->getModulName();
 
@@ -431,51 +431,57 @@ final class StatisticsController extends MainController
 
         // Unique responses, html
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogHtmlByMid($mailingId);
-        $uniqueHtmlResponses = count($res);//sql_num_rows($res);
+        $uniqueHtmlResponses = $res[0]['COUNT(*)'];
 
         // Unique responses, Plain
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogPlainByMid($mailingId);
-        $uniquePlainResponses = count($res); //sql_num_rows($res);
+        $uniquePlainResponses = $res[0]['COUNT(*)'];
 
         // Unique responses, pings
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->countSysDmailMaillogPingByMid($mailingId);
-        $uniquePingResponses = count($res); //sql_num_rows($res);
+        $uniquePingResponses = $res[0]['COUNT(*)'];
 
         $totalSent = (int)(($textHtml['1'] ?? 0) + ($textHtml['2'] ?? 0) + ($textHtml['3'] ?? 0));
         $htmlSent  = (int)(($textHtml['1'] ?? 0) + ($textHtml['3'] ?? 0));
         $plainSent = (int)($textHtml['2'] ?? 0);
+
+        $statTableBody[] = [
+            'stats_mails_sent',
+            $totalSent,
+            $htmlSent,
+            $plainSent
+        ];
+
+        // show row 'returned' only if entries available
+        if ($table['-127']['counter'] ){
+            $statTableBody[] = [
+                'stats_mails_returned',
+                $this->showWithPercent($table['-127']['counter'], $totalSent),
+                '',
+                ''
+            ];
+        }
+
+        $statTableBody[] = [
+            'stats_HTML_mails_viewed',
+            '',
+            $this->showWithPercent($uniquePingResponses, $htmlSent),
+            ''
+        ];
+
+        $statTableBody[] = [
+            'stats_unique_responses',
+            $this->showWithPercent($uniqueHtmlResponses + $uniquePlainResponses, $totalSent),
+            $this->showWithPercent($uniqueHtmlResponses, $htmlSent),
+            $this->showWithPercent($uniquePlainResponses, $plainSent ? $plainSent : $htmlSent)
+        ];
 
         return [
             'table' => [
                 'head' => [
                     '', 'stats_total', 'stats_HTML', 'stats_plaintext',
                 ],
-                'body' => [
-                    [
-                        'stats_mails_sent',
-                        $totalSent,
-                        $htmlSent,
-                        $plainSent,
-                    ],
-                    [
-                        'stats_mails_returned',
-                        $this->showWithPercent($table['-127']['counter'] ?? 0, $totalSent),
-                        '',
-                        '',
-                    ],
-                    [
-                        'stats_HTML_mails_viewed',
-                        '',
-                        $this->showWithPercent($uniquePingResponses, $htmlSent),
-                        '',
-                    ],
-                    [
-                        'stats_unique_responses',
-                        $this->showWithPercent($uniqueHtmlResponses + $uniquePlainResponses, $totalSent),
-                        $this->showWithPercent($uniqueHtmlResponses, $htmlSent),
-                        $this->showWithPercent($uniquePlainResponses, $plainSent ? $plainSent : $htmlSent),
-                    ],
-                ],
+                'body' => $statTableBody,
             ],
             'uniqueHtmlResponses' => $uniqueHtmlResponses,
             'uniquePlainResponses' => $uniquePlainResponses,
@@ -508,6 +514,7 @@ final class StatisticsController extends MainController
         $uniqueHtmlResponses = $mailResponsesGeneral['uniqueHtmlResponses'];
         $uniquePlainResponses = $mailResponsesGeneral['uniquePlainResponses'];
         $totalSent = $mailResponsesGeneral['totalSent'];
+        $totalProcessed = $mailResponsesGeneral['totalSent'];
         $htmlSent = $mailResponsesGeneral['htmlSent'];
         $plainSent =  $mailResponsesGeneral['plainSent'];
         $table = $mailResponsesGeneral['db'];
@@ -858,6 +865,11 @@ final class StatisticsController extends MainController
             ],
             'url' => $thisurl,
         ];
+
+        // Don't show table 4 if no records are matching
+        if (!$responseResult) {
+            unset($tables[4]);
+        }
 
         $tempRepository = GeneralUtility::makeInstance(TempRepository::class);
 
@@ -1258,7 +1270,7 @@ final class StatisticsController extends MainController
                 $hookObjectsArr[] = GeneralUtility::makeInstance($classRef);
             }
             //@TODO
-            // assigned $output to class property to make it acesssible inside hook
+            // assigned $output to class property to make it acessible inside hook
             $this->output = $output;
 
             // and clear the former $output to collect hoot return code there
@@ -1271,7 +1283,151 @@ final class StatisticsController extends MainController
             }
         }
 
+        $tables[7] = $this->getTable7($row); // unsent
+        $tables[8] = $this->getTable8($row); // returned
+
         return ['out' => $output, 'compactView' => $compactView, 'thisurl' => $thisurl, 'tables' => $tables];
+    }
+
+    private function getTable7(array $row): array
+    {
+        $tables = [
+            'head' => [
+                'table.head.email',
+                'table.head.mid',
+                'table.head.rid',
+                'table.head.html_sent',
+                'table.head.parsetime',
+                'table.head.timestamp',
+                'table.head.attempts',
+                'table.head.receiptList',
+                'table.head.details',
+            ],
+            'counter' => 0,
+            'body' => []
+        ];
+
+        $mailingId = (int) $row['uid'];
+        $setup = unserialize($row['query_info']);
+        $unsentCounter = 0;
+
+        $tableName = 'sys_dmail_maillog';
+        $q = $this->getQueryBuilder($tableName);
+
+        $rows = $q->select('html_sent', 'email', 'mid', 'rid', 'failed_sending_attempts', 'tstamp', 'parsetime')
+            ->from($tableName)
+            ->where($q->expr()->eq('response_type', 0))
+            ->andWhere($q->expr()->eq('html_sent', 0))
+            ->andWhere($q->expr()->eq('mid', $mailingId))
+            ->orderBy('rid', 'ASC')
+            ->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            $unsentCounter += 1;
+            if ($row['html_sent'] == 0) {
+                $keys = array_keys($setup['id_lists']);
+                $listType = $keys[0] ? $keys[0] : 'unbekannt';
+                $details = '';
+
+                if ($listType === 'PLAINLIST') {
+                    $itemId = $row['rid'] - 1;
+                    $details = print_r($setup['id_lists']['PLAINLIST'][$itemId], true);
+                } elseif ($listType === 'fe_users') {
+                    $details = 'fe_user uid: ' . $row['rid'];
+                }
+
+                $mailAddress = $row['email'] !== '' ? $row['email'] : 'leere Adresse';
+
+                $tables['body'][] = [
+                    $mailAddress,
+                    $row['mid'],
+                    $row['rid'],
+                    $row['html_sent'],
+                    $row['failed_sending_attempts'],
+                    $row['parsetime'],
+                    BackendUtility::datetime($row['tstamp']),
+                    $row['failed_sending_attempts'],
+                    $listType,
+                    $details
+                ];
+            }
+        }
+
+        $tables['counter'] = $unsentCounter;
+
+        return $unsentCounter > 0
+            ? $tables
+            : [];
+    }
+
+    private function getTable8(array $row): array
+    {
+        $tables = [
+            'head' => [
+                'table.head.email',
+                'table.head.mid',
+                'table.head.rid',
+                'table.head.html_sent',
+                'table.head.attempts',
+                'table.head.timestamp',
+                'table.head.parsetime',
+                'table.head.receiptList',
+                'table.head.details',
+                'table.head.response',
+            ],
+            'counter' => 0,
+            'body' => []
+        ];
+
+        $mailingId = (int) $row['uid'];
+        $setup = unserialize($row['query_info']);
+        $returnedCounter = 0;
+
+        $tableName = 'sys_dmail_maillog';
+        $q = $this->getQueryBuilder($tableName);
+        $rows = $q->select('html_sent', 'email', 'mid', 'rid', 'failed_sending_attempts', 'tstamp', 'parsetime', 'response_type', 'return_content')
+            ->from($tableName)
+            ->where($q->expr()->neq('return_content', '""'))
+            ->andWhere($q->expr()->eq('html_sent', 0))
+            ->andWhere($q->expr()->eq('mid', $mailingId))
+            ->orderBy('rid', 'ASC')
+            ->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            $returnedCounter += 1;
+            if ($row['html_sent'] == 0) {
+                $returnContent = $row['return_content'] != '' ? unserialize($row['return_content']) : ['content' => ''];
+                $keys = array_keys($setup['id_lists']);
+                $listType = $keys[0] ? $keys[0] : 'unbekannt';
+                if ($listType === 'PLAINLIST') {
+                    $itemId = $row['rid'] - 1;
+                    $details = print_r($setup['id_lists']['PLAINLIST'][$itemId], true);
+                } elseif ($listType === 'fe_users') {
+                    $details = 'fe_user uid: ' . $row['rid'];
+                }
+
+                $returnDetails = substr($returnContent['content'], 0, 250) . '...';
+                $mailAddress = $row['email'] !== '' ? $row['email'] : 'leere Adresse';
+                $tables['body'][] = [
+                    $mailAddress,
+                    $row['mid'],
+                    $row['rid'],
+                    $row['html_sent'],
+                    $row['failed_sending_attempts'],
+                    BackendUtility::datetime($row['tstamp']),
+                    $row['parsetime'],
+                    $listType,
+                    $details,
+                    $returnDetails
+                ];
+            }
+        }
+
+        $tables['counter'] = $returnedCounter;
+
+        return $returnedCounter > 0
+            ? $tables
+            : [];
     }
 
     private function getIdLists($rrows): array
@@ -1386,6 +1542,10 @@ final class StatisticsController extends MainController
 
         $res = GeneralUtility::makeInstance(SysDmailMaillogRepository::class)->selectSysDmailMaillogsCompactView($row['uid']);
 
+        $countUnsent = (int) $this->getTable7($row);
+        $countProcessed = count($res);
+        $countSent = $countProcessed - $countUnsent;
+
         $data = [
             'icon'          => $this->iconFactory->getIconForRecord('sys_dmail', $row, IconSize::SMALL)->render(),
             'iconInfo'      => $this->iconFactory->getIcon('actions-document-info', IconSize::SMALL)->render(),
@@ -1402,7 +1562,9 @@ final class StatisticsController extends MainController
             'delBegin'      => $row['scheduled_begin'] ? BackendUtility::datetime($row['scheduled_begin']) : '-',
             'delEnd'        => $row['scheduled_end'] ? BackendUtility::datetime($row['scheduled_end']) : '-',
             'totalRecip'    => $this->countTotalRecipientFromQueryInfo($row['query_info']),
-            'sentRecip'     => count($res),
+            'totalProc'     => count($res),
+            'totalUnsent'   => $this->getTable7($row),
+            'sentRecip'     => $countSent,
         ];
         return $data;
     }
@@ -1410,13 +1572,15 @@ final class StatisticsController extends MainController
     /**
      * Make a percent from the given parameters
      *
-     * @param int $pieces Number of pieces
-     * @param int $total Total of pieces
+     * @param int|null $pieces Number of pieces
+     * @param int|null $total Total of pieces
      *
      * @return string show number of pieces and the percent
      */
-    protected function showWithPercent(int $pieces, int $total): string
+    protected function showWithPercent(?int $pieces, ?int $total): string
     {
+        $pieces = (int)$pieces;
+        $total = (int)$total;
         $str = $pieces ? number_format($pieces) : '0';
         if ($total) {
             $str .= ' / ' . number_format(($pieces/$total*100), 2) . '%';
@@ -1640,17 +1804,7 @@ final class StatisticsController extends MainController
                 $url = $pathSite . $url;
             }
 
-            $content = GeneralUtility::makeInstance(FetchUtility::class)->getContents($url);
-            if (is_string($content) && preg_match('/\<\s*title\s*\>(.*)\<\s*\/\s*title\s*\>/i', $content, $matches)) {
-                // get the page title
-                $contentTitle = GeneralUtility::fixed_lgd_cs(trim($matches[1]), 50);
-            } else {
-                // file?
-                // https://api.typo3.org/main/_general_utility_8php_source.html
-                $file = GeneralUtility::split_fileref($url);
-                $contentTitle = $file['file'];
-            }
-
+            $contentTitle = $url;
         }
 
         if ($this->implodedParams['showContentTitle'] == 1) {
